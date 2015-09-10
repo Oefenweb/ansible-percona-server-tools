@@ -1,0 +1,17 @@
+# tasks file for percona-server-tools
+---
+- include: reset-root-password.yml
+  when: percona_server_tools_reset_root_password
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-reset-root-password
+
+- include: reset-ib-logfile.yml
+  when: percona_server_tools_reset_ib_logfile
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-reset-ib-logfile

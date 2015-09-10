@@ -1,0 +1,8 @@
+# defaults file for percona-server-tools
+---
+percona_server_tools_reset_root_password: false
+
+percona_server_tools_reset_ib_logfile: false
+percona_server_tools_reset_ib_logfile_ib_logfiles:
+  - /var/lib/mysql/ib_logfile0
+  - /var/lib/mysql/ib_logfile1
