@@ -27,8 +27,8 @@ None
 
 ## Recommended
 
-* `percona-client` ([see](https://github.com/Oefenweb/ansible-percona-client)
-* `percona-server` ([see](https://github.com/Oefenweb/ansible-percona-server)
+* `percona-client` ([see](https://github.com/Oefenweb/ansible-percona-client))
+* `percona-server` ([see](https://github.com/Oefenweb/ansible-percona-server))
 
 #### Example(s)
 
