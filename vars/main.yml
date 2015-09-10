@@ -1,12 +1,2 @@
 # vars file for percona-server-tools
 ---
-percona_server_tools_repositories:
-  - type: deb
-    url: "http://repo.percona.com/apt {{ ansible_lsb.codename }}"
-    component: main
-  - type: deb-src
-    url: "http://repo.percona.com/apt {{ ansible_lsb.codename }}"
-    component: main
-
-percona_server_tools_dependencies:
-  - "percona-server-client-{{ percona_server_tools_version }}"
