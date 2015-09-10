@@ -11,7 +11,15 @@ Manage [percona-server](https://www.percona.com/software/mysql-database/percona-
 
 #### Variables
 
-None
+##### Reset root password
+
+* `percona_server_tools_reset_root_password`: [default: `false`]: Whether or not to run `reset-root-password.yml`
+* `percona_server_tools_reset_root_password_root_password`: [required]: Root password
+
+##### Resize InnoDB logs
+
+* `percona_server_tools_reset_ib_logfile`: [default: `false`]: Whether or not to run `reset-ib-logfile.yml`
+* `percona_server_tools_reset_ib_logfile_ib_logfiles`: [default: `[/var/lib/mysql/ib_logfile0, /var/lib/mysql/ib_logfile1]`]: InnoDB logs to resize
 
 ## Dependencies
 
@@ -24,11 +32,27 @@ None
 
 #### Example(s)
 
+##### Reset root password
+
 ```yaml
 ---
 - hosts: all
   roles:
     - percona-server-tools
+  vars:
+    percona_server_tools_reset_root_password: true
+    percona_server_tools_reset_root_password_root_password: '6j~14F(Um~@nAz4hn6dT'
+```
+
+##### Resize InnoDB logs
+
+```yaml
+---
+- hosts: all
+  roles:
+    - percona-server-tools
+  vars:
+    percona_server_tools_reset_ib_logfile: true
 ```
 
 #### License

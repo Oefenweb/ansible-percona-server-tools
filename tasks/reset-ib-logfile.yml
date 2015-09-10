@@ -1,0 +1,44 @@
+# tasks file for percona-server-tools
+---
+- name: reset ib logfile | store InnoDB shutdown mode
+  mysql_variables:
+    variable: innodb_fast_shutdown
+  register: innodb_fast_shutdown_value
+  tags:
+    - percona-server-tools-reset-ib-logfile-check-innodb-shutdown-mode
+
+- name: reset ib logfile | set InnoDB shutdown mode
+  mysql_variables:
+    variable: innodb_fast_shutdown
+    value: "1"
+  tags:
+    - percona-server-tools-reset-ib-logfile-set-innodb-shutdown-mode
+
+- name: reset ib logfile | stop service
+  service:
+    name: mysql
+    state: stopped
+  tags:
+    - percona-server-tools-reset-ib-logfile-stop-service
+
+- name: reset ib logfile | remove ib_logfile(s)
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: percona_server_tools_reset_ib_logfile_ib_logfiles
+  tags:
+    - percona-server-tools-reset-ib-logfile-remove
+
+- name: reset ib logfile | start service
+  service:
+    name: mysql
+    state: started
+  tags:
+    - percona-server-tools-reset-ib-logfile-start-service
+
+- name: reset ib logfile | restore InnoDB shutdown mode
+  mysql_variables:
+    variable: innodb_fast_shutdown
+    value: "{{ innodb_fast_shutdown_value.msg.0.1 }}"
+  tags:
+    - percona-server-tools-reset-ib-logfile-restore-innodb-shutdown-mode
