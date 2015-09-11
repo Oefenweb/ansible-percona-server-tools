@@ -15,3 +15,11 @@
     - tools
     - percona-server-tools
     - percona-server-tools-reset-ib-logfile
+
+- include: setup-slave-replication.yml
+  when: percona_server_tools_setup_slave_replication
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-setup-slave-replication
