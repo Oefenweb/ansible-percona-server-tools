@@ -38,6 +38,27 @@ Manage [percona-server](https://www.percona.com/software/mysql-database/percona-
 * `percona_server_tools_setup_slave_replication_master_user`: [required]: Specifies the `MASTER_USER` (e.g. `replicator`)
 * `percona_server_tools_setup_slave_replication_master_password`: [required]: Specifies the `MASTER_PASSWORD`
 
+##### Setup master replication (using `xtrabackup`)
+
+* `percona_server_tools_setup_master_replication.run`: [default: `false`]: Whether or not to run `setup-master-replication.yml`
+
+* `percona_server_tools_setup_master_replication.inventory.master1`: [required]: The inventory hostname of the (primary) master server (e.g. `db-01.example.com`)
+* `percona_server_tools_setup_master_replication.inventory.master2`: [required]: The inventory hostname of the (secondary) master server (e.g. `db-02.example.com`)
+
+* `percona_server_tools_setup_master_replication.innobackupex.user`: [optional]: Specifies the user (i.e., the MySQL username used when connecting to the server) to login as, if that’s not the current user. It is passed to the `mysql` child process without alteration
+* `percona_server_tools_setup_master_replication.innobackupex.password`: [optional]: Specifies the password to use when connecting to the database. It is passed to the `mysql` child process without alteration
+* `percona_server_tools_setup_master_replication.innobackupex.parallel`: [optional]: Specifies the number of threads the `xtrabackup` child process should use to back up files concurrently
+* `percona_server_tools_setup_master_replication.innobackupex.rsync`: [optional]: Use the `rsync` utility to optimize local file transfers. When this option is specified, `innobackupex` uses `rsync` to copy all non-InnoDB files instead of spawning a separate `cp` for each file, which can be much faster for servers with a large number of databases or tables
+* `percona_server_tools_setup_master_replication.innobackupex.backup_dir`: [required]: Specifies the backup directory
+* `percona_server_tools_setup_master_replication.innobackupex.use_memory`: [optional]: Specifies the amount of memory in bytes for `xtrabackup` to use for crash recovery while preparing a backup
+
+* `percona_server_tools_setup_master_replication.master1.host`: [required]: Specifies the `MASTER_HOST` (on `master2`), needed to setup the replication, but also the pull backups from the master (`rsync` over `ssh`) (e.g. `{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}`)
+* `percona_server_tools_setup_master_replication.master1.user`: [required]: Specifies the `MASTER_USER` (e.g. `replicator`)
+* `percona_server_tools_setup_master_replication.master1.password`: [required]: Specifies the `MASTER_PASSWORD`
+* `percona_server_tools_setup_master_replication.master2.host`: [required]: Specifies the `MASTER_HOST` (on `master1`), needed to setup the replication, but also the pull backups from the master (`rsync` over `ssh`) (e.g. `{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}`)
+* `percona_server_tools_setup_master_replication.master2.user`: [optional, default: `master1.user`]: Same as above
+* `percona_server_tools_setup_master_replication.master2.password`: [optional, default: `master1.password`]: Same as above
+
 ## Dependencies
 
 None

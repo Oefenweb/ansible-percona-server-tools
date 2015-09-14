@@ -23,3 +23,11 @@
     - tools
     - percona-server-tools
     - percona-server-tools-setup-slave-replication
+
+- include: setup-master-replication.yml
+  when: percona_server_tools_setup_master_replication.run
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-setup-master-replication

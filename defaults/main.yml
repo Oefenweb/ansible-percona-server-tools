@@ -8,3 +8,6 @@ percona_server_tools_reset_ib_logfile_ib_logfiles:
   - /var/lib/mysql/ib_logfile1
 
 percona_server_tools_setup_slave_replication: false
+
+percona_server_tools_setup_master_replication:
+  run: false
