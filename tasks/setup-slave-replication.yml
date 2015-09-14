@@ -8,26 +8,65 @@
   tags:
     - percona-server-tools-setup-slave-replication-create-backup-directory
 
-- name: setup slave replication | make a backup
+- name: setup slave replication | make a backup | queue
   command: "innobackupex --no-timestamp{% if percona_server_tools_setup_slave_replication_innobackupex_user is defined %} --user={{ percona_server_tools_setup_slave_replication_innobackupex_user }} {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_password is defined %} --password='{{ percona_server_tools_setup_slave_replication_innobackupex_password }}' {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_parallel is defined and percona_server_tools_setup_slave_replication_innobackupex_parallel > 1 %} --parallel={{ percona_server_tools_setup_slave_replication_innobackupex_parallel }} {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_rsync is defined and percona_server_tools_setup_slave_replication_innobackupex_rsync %} --rsync {% endif %} {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
-  register: make_a_backup
-  failed_when: "make_a_backup.rc != 0 or make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  register: make_a_backup_async
+  async: 86400
+  poll: 0
   when: inventory_hostname == percona_server_tools_setup_slave_replication_master
   tags:
     - percona-server-tools-setup-slave-replication-make-a-backup
 
-- name: setup slave replication | prepare the backup
+- name: setup slave replication | make a backup | poll
+  async_status:
+    jid: "{{ make_a_backup_async.ansible_job_id }}"
+  register: make_a_backup
+  failed_when: "make_a_backup.rc != 0 or make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  until: make_a_backup.finished
+  retries: 8640
+  delay: 10
+  when: inventory_hostname == percona_server_tools_setup_slave_replication_master
+  tags:
+    - percona-server-tools-setup-slave-replication-make-a-backup
+
+- name: setup slave replication | prepare the backup | queue
   command: "innobackupex --apply-log {% if percona_server_tools_setup_slave_replication_innobackupex_user is defined %} --user={{ percona_server_tools_setup_slave_replication_innobackupex_user }} {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_password is defined %} --password='{{ percona_server_tools_setup_slave_replication_innobackupex_password }}' {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_use_memory is defined %} --use-memory={{ percona_server_tools_setup_slave_replication_innobackupex_use_memory }} {% endif %} {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
-  register: prepare_a_backup
-  failed_when: "prepare_a_backup.rc != 0 or prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  register: prepare_a_backup_async
+  async: 86400
+  poll: 0
   when: inventory_hostname == percona_server_tools_setup_slave_replication_master
   tags:
     - percona-server-tools-setup-slave-replication-prepare-the-backup
 
-- name: setup slave replication | pull backup
+- name: setup slave replication | prepare the backup | poll
+  async_status:
+    jid: "{{ prepare_a_backup_async.ansible_job_id }}"
+  register: prepare_a_backup
+  failed_when: "prepare_a_backup.rc != 0 or prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  until: prepare_a_backup.finished
+  retries: 8640
+  delay: 10
+  when: inventory_hostname == percona_server_tools_setup_slave_replication_master
+  tags:
+    - percona-server-tools-setup-slave-replication-prepare-the-backup
+
+- name: setup slave replication | pull backup | queue
   command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_slave_replication_master_host }}:{{percona_server_tools_setup_slave_replication_innobackupex_backup_dir}}/ {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
+  register: pull_backup_async
+  async: 86400
+  poll: 0
+  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-pull-backup
+
+- name: setup slave replication | pull backup | poll
+  async_status:
+    jid: "{{ pull_backup_async.ansible_job_id }}"
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
+  until: pull_backup.finished
+  retries: 8640
+  delay: 10
   when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
   tags:
     - percona-server-tools-setup-slave-replication-pull-backup
@@ -70,10 +109,23 @@
   tags:
     - percona-server-tools-setup-slave-replication-stop-service
 
-- name: setup slave replication | copy back
+- name: setup slave replication | copy back | queue
   command: "rsync -ai --delete --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}/ {{ datadir_value.msg.0.1.rstrip('/') }}"
+  register: pull_backup_async
+  async: 86400
+  poll: 0
+  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-copy-back
+
+- name: setup slave replication | copy back | poll
+  async_status:
+    jid: "{{ pull_backup_async.ansible_job_id }}"
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
+  until: pull_backup.finished
+  retries: 8640
+  delay: 10
   when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
   tags:
     - percona-server-tools-setup-slave-replication-copy-back
