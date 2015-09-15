@@ -70,6 +70,14 @@
   tags:
     - percona-server-tools-setup-slave-replication-stop-service
 
+- name: setup slave replication | purge datadir
+  file:
+    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    state: absent
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-purge-datadir
+
 - name: setup slave replication | copy back
   command: "rsync -ai --delete --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/ {{ datadir_value.msg.0.1.rstrip('/') }}"
   register: pull_backup
@@ -87,7 +95,7 @@
     - percona-server-tools-setup-slave-replication-set-permissions
 
 - name: setup slave replication | pull debian.cnf
-  command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
+  command: "rsync -ai --checksum --delete -e ssh {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
   register: pull_debian_cnf
   changed_when: pull_debian_cnf.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
