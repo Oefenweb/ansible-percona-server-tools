@@ -70,6 +70,14 @@
   tags:
     - percona-server-tools-setup-master-replication-stop-service
 
+- name: setup master replication | purge datadir
+  file:
+    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    state: absent
+  when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
+  tags:
+    - percona-server-tools-setup-master-replication-purge-datadir
+
 - name: setup master replication | copy back
   command: "rsync -ai --delete --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/ {{ datadir_value.msg.0.1.rstrip('/') }}"
   register: pull_backup
@@ -87,7 +95,7 @@
     - percona-server-tools-setup-master-replication-set-permissions
 
 - name: setup master replication | pull debian.cnf
-  command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_master_replication.master1.host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
+  command: "rsync -ai --checksum --delete -e ssh {{ percona_server_tools_setup_master_replication.master1.host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
   register: pull_debian_cnf
   changed_when: pull_debian_cnf.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
@@ -120,3 +128,13 @@
   when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-start-slave
+
+- name: setup master replication | get master
+  mysql_replication:
+    mode: getmaster
+    login_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
+    login_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
+    login_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-get master
