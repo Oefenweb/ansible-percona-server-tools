@@ -25,7 +25,7 @@
   file:
     path: "{{ item }}"
     state: absent
-  with_items: percona_server_tools_reset_ib_logfile_ib_logfiles
+  with_items: percona_server_tools_reset_ib_logfile.ib_logfiles | default(['/var/lib/mysql/ib_logfile0', '/var/lib/mysql/ib_logfile1'])
   tags:
     - percona-server-tools-reset-ib-logfile-remove
 
