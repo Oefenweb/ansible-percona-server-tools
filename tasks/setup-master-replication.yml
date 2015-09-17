@@ -131,6 +131,15 @@
   tags:
     - percona-server-tools-setup-master-replication-start-slave
 
+- name: setup master replication | get slave
+  mysql_replication:
+    mode: getslave
+  register: slave2_information
+  when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
+  failed_when: slave2_information.Slave_IO_Running != 'Yes' or slave2_information.Slave_SQL_Running != 'Yes'
+  tags:
+    - percona-server-tools-setup-master-replication-get-slave
+
 - name: setup master replication | get master
   mysql_replication:
     mode: getmaster
@@ -174,3 +183,12 @@
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-start-slave
+
+- name: setup master replication | get slave
+  mysql_replication:
+    mode: getslave
+  register: slave1_information
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  failed_when: slave1_information.Slave_IO_Running != 'Yes' or slave1_information.Slave_SQL_Running != 'Yes'
+  tags:
+    - percona-server-tools-setup-master-replication-get-slave
