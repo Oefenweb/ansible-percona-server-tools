@@ -87,9 +87,11 @@
     - percona-server-tools-setup-slave-replication-copy-back
 
 - name: setup slave replication | set permissions
-  command: "chown -Rc mysql:mysql {{ datadir_value.msg.0.1.rstrip('/') }}"
-  register: set_permissions
-  changed_when: "set_permissions.stdout_lines | length > 0"
+  file:
+    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    owner: mysql
+    group: mysql
+    recurse: true
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-set-permissions
