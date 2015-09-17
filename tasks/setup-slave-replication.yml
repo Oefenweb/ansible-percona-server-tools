@@ -120,7 +120,7 @@
     master_log_pos: "{{ master_log_information.stdout.split()[1] }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-start-service
+    - percona-server-tools-setup-slave-replication-change-master
 
 - name: setup slave replication | start slave
   mysql_replication:

@@ -42,7 +42,7 @@
 
 - name: setup master replication | get master log information
   command: "cat {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info"
-  register: master_log_information
+  register: master1_log_information
   changed_when: false
   when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
   tags:
@@ -87,9 +87,11 @@
     - percona-server-tools-setup-master-replication-copy-back
 
 - name: setup master replication | set permissions
-  command: "chown -Rc mysql:mysql {{ datadir_value.msg.0.1.rstrip('/') }}"
-  register: set_permissions
-  changed_when: "set_permissions.stdout_lines | length > 0"
+  file:
+    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    owner: mysql
+    group: mysql
+    recurse: true
   when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-set-permissions
@@ -116,8 +118,8 @@
     master_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
     master_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
     master_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
-    master_log_file: "{{ master_log_information.stdout.split()[0] }}"
-    master_log_pos: "{{ master_log_information.stdout.split()[1] }}"
+    master_log_file: "{{ master1_log_information.stdout.split()[0] }}"
+    master_log_pos: "{{ master1_log_information.stdout.split()[1] }}"
   when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-start-service
@@ -135,6 +137,40 @@
     login_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
     login_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
     login_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+  register: master2_log_information
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
-    - percona-server-tools-setup-master-replication-get master
+    - percona-server-tools-setup-master-replication-get-master
+
+- name: setup master replication | stop slave
+  mysql_replication:
+    mode: stopslave
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-stop-slave
+
+- name: setup master replication | reset slave
+  command: "mysql -e \"RESET SLAVE ALL;\""
+  changed_when: false
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-reset-slave
+
+- name: setup master replication | change master
+  mysql_replication:
+    mode: changemaster
+    master_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
+    master_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
+    master_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+    master_log_file: "{{ master2_log_information.File }}"
+    master_log_pos: "{{ master2_log_information.Position }}"
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-change-master
+
+- name: setup master replication | start slave
+  mysql_replication:
+    mode: startslave
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-start-slave
