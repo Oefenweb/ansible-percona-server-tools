@@ -1,34 +1,41 @@
 # tasks file for percona-server-tools
 ---
+- name: setup slave replication | check service
+  service:
+    name: mysql
+    state: started
+  tags:
+    - percona-server-tools-setup-slave-replication-check-service
+
 - name: setup slave replication | create (backup) directory
   file:
-    path: "{{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
+    path: "{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
     state: absent
-  when: inventory_hostname == percona_server_tools_setup_slave_replication_master
+  when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-create-backup-directory
 
 - name: setup slave replication | make a backup
-  command: "innobackupex --no-timestamp{% if percona_server_tools_setup_slave_replication_innobackupex_user is defined %} --user={{ percona_server_tools_setup_slave_replication_innobackupex_user }} {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_password is defined %} --password='{{ percona_server_tools_setup_slave_replication_innobackupex_password }}' {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_parallel is defined and percona_server_tools_setup_slave_replication_innobackupex_parallel > 1 %} --parallel={{ percona_server_tools_setup_slave_replication_innobackupex_parallel }} {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_rsync is defined and percona_server_tools_setup_slave_replication_innobackupex_rsync %} --rsync {% endif %} {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
+  command: "innobackupex --no-timestamp{% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %} --user={{ percona_server_tools_setup_slave_replication.innobackupex.user }} {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %} --password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}' {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.parallel is defined and percona_server_tools_setup_slave_replication.innobackupex.parallel > 1 %} --parallel={{ percona_server_tools_setup_slave_replication.innobackupex.parallel }} {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.rsync is defined and percona_server_tools_setup_slave_replication.innobackupex.rsync %} --rsync {% endif %} {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
   register: make_a_backup
   failed_when: "make_a_backup.rc != 0 or make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
-  when: inventory_hostname == percona_server_tools_setup_slave_replication_master
+  when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-make-a-backup
 
 - name: setup slave replication | prepare the backup
-  command: "innobackupex --apply-log {% if percona_server_tools_setup_slave_replication_innobackupex_user is defined %} --user={{ percona_server_tools_setup_slave_replication_innobackupex_user }} {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_password is defined %} --password='{{ percona_server_tools_setup_slave_replication_innobackupex_password }}' {% endif %}{% if percona_server_tools_setup_slave_replication_innobackupex_use_memory is defined %} --use-memory={{ percona_server_tools_setup_slave_replication_innobackupex_use_memory }} {% endif %} {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
+  command: "innobackupex --apply-log {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %} --user={{ percona_server_tools_setup_slave_replication.innobackupex.user }} {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %} --password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}' {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.use_memory is defined %} --use-memory={{ percona_server_tools_setup_slave_replication.innobackupex.use_memory }} {% endif %} {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
   register: prepare_a_backup
   failed_when: "prepare_a_backup.rc != 0 or prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
-  when: inventory_hostname == percona_server_tools_setup_slave_replication_master
+  when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-prepare-the-backup
 
 - name: setup slave replication | pull backup
-  command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_slave_replication_master_host }}:{{percona_server_tools_setup_slave_replication_innobackupex_backup_dir}}/ {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}"
+  command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_slave_replication.master.host }}:{{percona_server_tools_setup_slave_replication.innobackupex.backup_dir}}/ {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-pull-backup
 
@@ -36,29 +43,29 @@
   mysql_variables:
     variable: datadir
   register: datadir_value
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-get-datadir
 
-- name: setup slave replication | get master log information
-  command: "cat {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}/xtrabackup_binlog_info"
+- name: setup slave replication | get master
+  command: "cat {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info"
   register: master_log_information
   changed_when: false
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-get-master-log-information
+    - percona-server-tools-setup-slave-replication-get-master
 
 - name: setup slave replication | stop slave
   mysql_replication:
     mode: stopslave
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-stop-slave
 
 - name: setup slave replication | reset slave
   command: "mysql -e \"RESET SLAVE ALL;\""
   changed_when: false
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-reset-slave
 
@@ -66,31 +73,41 @@
   service:
     name: mysql
     state: stopped
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-stop-service
 
+- name: setup slave replication | purge datadir
+  file:
+    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    state: absent
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-purge-datadir
+
 - name: setup slave replication | copy back
-  command: "rsync -ai --delete --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' {{ percona_server_tools_setup_slave_replication_innobackupex_backup_dir }}/ {{ datadir_value.msg.0.1.rstrip('/') }}"
+  command: "rsync -ai --delete --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/ {{ datadir_value.msg.0.1.rstrip('/') }}"
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-copy-back
 
 - name: setup slave replication | set permissions
-  command: "chown -Rc mysql:mysql {{ datadir_value.msg.0.1.rstrip('/') }}"
-  register: set_permissions
-  changed_when: "set_permissions.stdout_lines | length > 0"
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  file:
+    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    owner: mysql
+    group: mysql
+    recurse: true
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-set-permissions
 
 - name: setup slave replication | pull debian.cnf
-  command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_slave_replication_master_host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
+  command: "rsync -ai --checksum --delete -e ssh {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
   register: pull_debian_cnf
   changed_when: pull_debian_cnf.stdout_lines | length > 0
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-pull-debian.cnf
 
@@ -98,25 +115,34 @@
   service:
     name: mysql
     state: started
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-start-service
 
 - name: setup slave replication | change master
   mysql_replication:
     mode: changemaster
-    master_host: "{{ percona_server_tools_setup_slave_replication_master_host }}"
-    master_user: "{{ percona_server_tools_setup_slave_replication_master_user }}"
-    master_password: "{{ percona_server_tools_setup_slave_replication_master_password }}"
+    master_host: "{{ percona_server_tools_setup_slave_replication.master.host }}"
+    master_user: "{{ percona_server_tools_setup_slave_replication.master.user }}"
+    master_password: "{{ percona_server_tools_setup_slave_replication.master.password }}"
     master_log_file: "{{ master_log_information.stdout.split()[0] }}"
     master_log_pos: "{{ master_log_information.stdout.split()[1] }}"
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-start-service
+    - percona-server-tools-setup-slave-replication-change-master
 
 - name: setup slave replication | start slave
   mysql_replication:
     mode: startslave
-  when: inventory_hostname in percona_server_tools_setup_slave_replication_slaves
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-start-slave
+
+- name: setup slave replication | get slave
+  mysql_replication:
+    mode: getslave
+  register: slave_information
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  failed_when: slave_information.Slave_IO_Running != 'Yes' or slave_information.Slave_SQL_Running != 'Yes'
+  tags:
+    - percona-server-tools-setup-slave-replication-get-slave

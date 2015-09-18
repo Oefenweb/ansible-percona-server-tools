@@ -1,7 +1,7 @@
 # tasks file for percona-server-tools
 ---
 - include: reset-root-password.yml
-  when: percona_server_tools_reset_root_password
+  when: percona_server_tools_reset_root_password.run | default(false)
   tags:
     - configuration
     - tools
@@ -9,7 +9,7 @@
     - percona-server-tools-reset-root-password
 
 - include: reset-ib-logfile.yml
-  when: percona_server_tools_reset_ib_logfile
+  when: percona_server_tools_reset_ib_logfile.run | default(false)
   tags:
     - configuration
     - tools
@@ -17,9 +17,17 @@
     - percona-server-tools-reset-ib-logfile
 
 - include: setup-slave-replication.yml
-  when: percona_server_tools_setup_slave_replication
+  when: percona_server_tools_setup_slave_replication.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-slave-replication
+
+- include: setup-master-replication.yml
+  when: percona_server_tools_setup_master_replication.run | default(false)
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-setup-master-replication
