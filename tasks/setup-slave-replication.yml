@@ -1,5 +1,12 @@
 # tasks file for percona-server-tools
 ---
+- name: setup slave replication | check service
+  service:
+    name: mysql
+    state: started
+  tags:
+    - percona-server-tools-setup-slave-replication-check-service
+
 - name: setup slave replication | create (backup) directory
   file:
     path: "{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
@@ -40,13 +47,13 @@
   tags:
     - percona-server-tools-setup-slave-replication-get-datadir
 
-- name: setup slave replication | get master log information
+- name: setup slave replication | get master
   command: "cat {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info"
   register: master_log_information
   changed_when: false
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-get-master-log-information
+    - percona-server-tools-setup-slave-replication-get-master
 
 - name: setup slave replication | stop slave
   mysql_replication:
@@ -130,3 +137,12 @@
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-start-slave
+
+- name: setup slave replication | get slave
+  mysql_replication:
+    mode: getslave
+  register: slave_information
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  failed_when: slave_information.Slave_IO_Running != 'Yes' or slave_information.Slave_SQL_Running != 'Yes'
+  tags:
+    - percona-server-tools-setup-slave-replication-get-slave
