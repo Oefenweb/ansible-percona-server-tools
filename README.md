@@ -27,7 +27,8 @@ Removes the current InnoDB log files in a safe way.
 * `percona_server_tools_reset_ib_logfile`: [default: `{}`]:
 * `percona_server_tools_reset_ib_logfile.run`: [default: `false`]: Whether or not to run `reset-ib-logfile.yml`
 
-* `percona_server_tools_reset_ib_logfile.ib_logfiles`: [optional, default: `[/var/lib/mysql/ib_logfile0, /var/lib/mysql/ib_logfile1]`]: InnoDB logs to resize
+* `percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode`: [default: `true`]: Whether or not to check the InnoDB shutdown mode
+* `percona_server_tools_reset_ib_logfile.ib_logfiles`: [default: `[/var/lib/mysql/ib_logfile0, /var/lib/mysql/ib_logfile1]`]: InnoDB logs to resize
 
 ##### Setup slave replication (using `xtrabackup`)
 
@@ -88,8 +89,8 @@ Sets up master replication on one master from a healthy master. Assumes that the
 * `percona_server_tools_setup_master_replication.master1.user`: [required]: Specifies the `MASTER_USER` (e.g. `replicator`)
 * `percona_server_tools_setup_master_replication.master1.password`: [required]: Specifies the `MASTER_PASSWORD`
 * `percona_server_tools_setup_master_replication.master2.host`: [required]: Specifies the `MASTER_HOST` (on `master1`), needed to setup the replication, but also the pull backups from the master (`rsync` over `ssh`) (e.g. `{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}`)
-* `percona_server_tools_setup_master_replication.master2.user`: [optional, default: `master1.user`]: Same as above
-* `percona_server_tools_setup_master_replication.master2.password`: [optional, default: `master1.password`]: Same as above
+* `percona_server_tools_setup_master_replication.master2.user`: [default: `master1.user`]: Same as above
+* `percona_server_tools_setup_master_replication.master2.password`: [default: `master1.password`]: Same as above
 
 ## Dependencies
 

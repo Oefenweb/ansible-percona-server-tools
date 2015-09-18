@@ -4,6 +4,7 @@
   mysql_variables:
     variable: innodb_fast_shutdown
   register: innodb_fast_shutdown_value
+  when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
   tags:
     - percona-server-tools-reset-ib-logfile-check-innodb-shutdown-mode
 
@@ -11,6 +12,7 @@
   mysql_variables:
     variable: innodb_fast_shutdown
     value: "1"
+  when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
   tags:
     - percona-server-tools-reset-ib-logfile-set-innodb-shutdown-mode
 
@@ -40,5 +42,6 @@
   mysql_variables:
     variable: innodb_fast_shutdown
     value: "{{ innodb_fast_shutdown_value.msg.0.1 }}"
+  when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
   tags:
     - percona-server-tools-reset-ib-logfile-restore-innodb-shutdown-mode
