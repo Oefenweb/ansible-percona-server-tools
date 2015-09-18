@@ -33,6 +33,13 @@ Removes the current InnoDB log files in a safe way.
 
 Sets up slave replication on one or more slaves from a healthy master. Assumes that the slaves are able to pull backups using `rsync` over `ssh`, so ssh (keys) need to be set up.
 
+**Notes**
+
+* Recommends Ansible `>= 1.9.0.1` because of all the bugs and changes in the `mysql_replication` module
+* Recommends using the `any_errors_fatal` [option](http://docs.ansible.com/ansible/playbooks_delegation.html#interrupt-execution-on-any-error) to interrupt execution on any error
+
+- - -
+
 * `percona_server_tools_setup_slave_replication`: [default: `{}`]:
 * `percona_server_tools_setup_slave_replication.run`: [default: `false`]: Whether or not to run `setup-slave-replication.yml`
 
@@ -55,7 +62,15 @@ Sets up slave replication on one or more slaves from a healthy master. Assumes t
 
 ##### Setup master replication (using `xtrabackup`)
 
-Sets up master replication on one master from a healthy master. Assumes that the master is able to pull backups using `rsync` over `ssh`, so ssh (keys) need to be set up.
+Sets up master replication on one master from a healthy master. Assumes that the master is able to pull backups using `rsync` over `ssh`, so ssh (keys) need to be set up. Also assumes that there are **no writes on the (secondary) master** during the run of this playbook.
+
+**Notes**
+
+* Requires Ansible `>= 1.9.0.1` because of all the bugs and changes in the `mysql_replication` module
+* Recommends using the `any_errors_fatal` [option](http://docs.ansible.com/ansible/playbooks_delegation.html#interrupt-execution-on-any-error) to interrupt execution on any error
+* Requires `master(1|2).user` to have both `GRANT REPLICATION SLAVE` and `REPLICATION CLIENT` grants
+
+- - -
 
 * `percona_server_tools_setup_master_replication.run`: [default: `false`]: Whether or not to run `setup-master-replication.yml`
 
@@ -127,13 +142,38 @@ None
         master: db-01.example.com
         slaves:
           - db-02.example.com
-    
+
       backup_dir: /tmp/xtrabackup
-    
+
       master:
         host: "{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}"
         user: replicator
         password: 'Z$8>YM"KUVRv6sW#=O-A'
+```
+
+##### Setup master replication
+
+```yaml
+---
+- hosts: all
+  roles:
+    - percona-server-tools
+  vars:
+    percona_server_tools_setup_master_replication:
+      run: true
+      inventory:
+        master1: db-01.example.com
+        master2: db-02.example.com
+
+      innobackupex:
+        backup_dir: /tmp/xtrabackup
+
+      master1:
+        host: "{{ hostvars['db-01.example.com']['ansible_eth1']['ipv4']['address'] }}"
+        user: replicator
+        password: 'Z$8>YM"KUVRv6sW#=O-A'
+      master2:
+        host: "{{ hostvars['db-02.example.com']['ansible_eth1']['ipv4']['address'] }}"
 ```
 
 #### License
