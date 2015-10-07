@@ -49,7 +49,7 @@ Sets up slave replication on one or more slaves from a healthy master. Assumes t
 * `percona_server_tools_setup_slave_replication.inventory.slaves`: [required]: The inventory hostname(s) of the slave server(s) (e.g. `[db-02.example.com, db-03.example.com]`)
 
 * `percona_server_tools_setup_slave_replication.innobackupex`: [required]: Innobackupex section
-* `percona_server_tools_setup_slave_replication.innobackupex.user`: [optional]: Specifies the user (i.e., the MySQL username used when connecting to the server) to login as, if that’s not the current user. It is passed to the `mysql` child process without alteration
+* `percona_server_tools_setup_slave_replication.innobackupex.user`: [optional]: Specifies the user (i.e., the MySQL username used when connecting to the server) to login as, if that's not the current user. It is passed to the `mysql` child process without alteration
 * `percona_server_tools_setup_slave_replication.innobackupex.password`: [optional]: Specifies the password to use when connecting to the database. It is passed to the `mysql` child process without alteration
 * `percona_server_tools_setup_slave_replication.innobackupex.parallel`: [optional]: Specifies the number of threads the `xtrabackup` child process should use to back up files concurrently
 * `percona_server_tools_setup_slave_replication.innobackupex.rsync`: [optional]: Use the `rsync` utility to optimize local file transfers. When this option is specified, `innobackupex` uses `rsync` to copy all non-InnoDB files instead of spawning a separate `cp` for each file, which can be much faster for servers with a large number of databases or tables
@@ -78,7 +78,7 @@ Sets up master replication on one master from a healthy master. Assumes that the
 * `percona_server_tools_setup_master_replication.inventory.master1`: [required]: The inventory hostname of the (primary) master server (e.g. `db-01.example.com`)
 * `percona_server_tools_setup_master_replication.inventory.master2`: [required]: The inventory hostname of the (secondary) master server (e.g. `db-02.example.com`)
 
-* `percona_server_tools_setup_master_replication.innobackupex.user`: [optional]: Specifies the user (i.e., the MySQL username used when connecting to the server) to login as, if that’s not the current user. It is passed to the `mysql` child process without alteration
+* `percona_server_tools_setup_master_replication.innobackupex.user`: [optional]: Specifies the user (i.e., the MySQL username used when connecting to the server) to login as, if that's not the current user. It is passed to the `mysql` child process without alteration
 * `percona_server_tools_setup_master_replication.innobackupex.password`: [optional]: Specifies the password to use when connecting to the database. It is passed to the `mysql` child process without alteration
 * `percona_server_tools_setup_master_replication.innobackupex.parallel`: [optional]: Specifies the number of threads the `xtrabackup` child process should use to back up files concurrently
 * `percona_server_tools_setup_master_replication.innobackupex.rsync`: [optional]: Use the `rsync` utility to optimize local file transfers. When this option is specified, `innobackupex` uses `rsync` to copy all non-InnoDB files instead of spawning a separate `cp` for each file, which can be much faster for servers with a large number of databases or tables
