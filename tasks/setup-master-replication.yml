@@ -50,7 +50,7 @@
   command: >
     rsync \
       -ai --delete \
-      -e ssh \
+      -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}' \
       {{ percona_server_tools_setup_master_replication.master1.host }}:{{percona_server_tools_setup_master_replication.innobackupex.backup_dir}}/ \
       {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}
   register: pull_backup
