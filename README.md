@@ -61,6 +61,8 @@ Sets up slave replication on one or more slaves from a healthy master. Assumes t
 * `percona_server_tools_setup_slave_replication.master.user`: [required]: Specifies the `MASTER_USER` (e.g. `replicator`)
 * `percona_server_tools_setup_slave_replication.master.password`: [required]: Specifies the `MASTER_PASSWORD`
 
+* `percona_server_tools_setup_slave_replication.ssh_opts`: [optional]: SSH options (e.g. `['-o Ciphers=arcfour']`)
+
 ##### Setup master replication (using `xtrabackup`)
 
 Sets up master replication on one master from a healthy master. Assumes that the master is able to pull backups using `rsync` over `ssh`, so ssh (keys) need to be set up. Also assumes that there are **no writes on the (secondary) master** during the run of this playbook.
@@ -91,6 +93,8 @@ Sets up master replication on one master from a healthy master. Assumes that the
 * `percona_server_tools_setup_master_replication.master2.host`: [required]: Specifies the `MASTER_HOST` (on `master1`), needed to setup the replication, but also the pull backups from the master (`rsync` over `ssh`) (e.g. `{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}`)
 * `percona_server_tools_setup_master_replication.master2.user`: [default: `master1.user`]: Same as above
 * `percona_server_tools_setup_master_replication.master2.password`: [default: `master1.password`]: Same as above
+
+* `percona_server_tools_setup_master_replication.ssh_opts`: [optional]: SSH options (e.g. `['-o Ciphers=arcfour']`)
 
 ## Dependencies
 

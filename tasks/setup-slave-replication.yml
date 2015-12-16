@@ -16,7 +16,15 @@
     - percona-server-tools-setup-slave-replication-create-backup-directory
 
 - name: setup slave replication | make a backup
-  command: "innobackupex --no-timestamp{% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %} --user={{ percona_server_tools_setup_slave_replication.innobackupex.user }} {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %} --password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}' {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.parallel is defined and percona_server_tools_setup_slave_replication.innobackupex.parallel > 1 %} --parallel={{ percona_server_tools_setup_slave_replication.innobackupex.parallel }} {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.rsync is defined and percona_server_tools_setup_slave_replication.innobackupex.rsync %} --rsync {% endif %} {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
+  shell: >
+    ulimit -n {{ percona_server_tools_ulimit }} && \
+    innobackupex \
+      --no-timestamp \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %}--user={{ percona_server_tools_setup_slave_replication.innobackupex.user }}{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}'{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.parallel is defined and percona_server_tools_setup_slave_replication.innobackupex.parallel > 1 %}--parallel={{ percona_server_tools_setup_slave_replication.innobackupex.parallel }}{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.rsync is defined and percona_server_tools_setup_slave_replication.innobackupex.rsync %}--rsync{% endif %} \
+      {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
   register: make_a_backup
   failed_when: "make_a_backup.rc != 0 or make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
@@ -24,7 +32,14 @@
     - percona-server-tools-setup-slave-replication-make-a-backup
 
 - name: setup slave replication | prepare the backup
-  command: "innobackupex --apply-log {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %} --user={{ percona_server_tools_setup_slave_replication.innobackupex.user }} {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %} --password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}' {% endif %}{% if percona_server_tools_setup_slave_replication.innobackupex.use_memory is defined %} --use-memory={{ percona_server_tools_setup_slave_replication.innobackupex.use_memory }} {% endif %} {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
+  shell: >
+    ulimit -n {{ percona_server_tools_ulimit }} && \
+    innobackupex \
+      --apply-log \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %}--user={{ percona_server_tools_setup_slave_replication.innobackupex.user }}{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}'{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.innobackupex.use_memory is defined %}--use-memory={{ percona_server_tools_setup_slave_replication.innobackupex.use_memory }}{% endif %} \
+      {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
   register: prepare_a_backup
   failed_when: "prepare_a_backup.rc != 0 or prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
@@ -32,7 +47,12 @@
     - percona-server-tools-setup-slave-replication-prepare-the-backup
 
 - name: setup slave replication | pull backup
-  command: "rsync -ai --delete -e ssh {{ percona_server_tools_setup_slave_replication.master.host }}:{{percona_server_tools_setup_slave_replication.innobackupex.backup_dir}}/ {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
+  command: >
+    rsync \
+      -ai --delete \
+      -e 'ssh{% if percona_server_tools_setup_slave_replication.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication.ssh_opts | join(" ") }}{% endif %}' \
+      {{ percona_server_tools_setup_slave_replication.master.host }}:{{percona_server_tools_setup_slave_replication.innobackupex.backup_dir}}/ \
+      {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
@@ -48,7 +68,7 @@
     - percona-server-tools-setup-slave-replication-get-datadir
 
 - name: setup slave replication | get master
-  command: "cat {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info"
+  command: cat {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info
   register: master_log_information
   changed_when: false
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
@@ -63,7 +83,7 @@
     - percona-server-tools-setup-slave-replication-stop-slave
 
 - name: setup slave replication | reset slave
-  command: "mysql -e \"RESET SLAVE ALL;\""
+  command: mysql -e 'RESET SLAVE ALL;'
   changed_when: false
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
@@ -86,7 +106,12 @@
     - percona-server-tools-setup-slave-replication-purge-datadir
 
 - name: setup slave replication | copy back
-  command: "rsync -ai --delete --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/ {{ datadir_value.msg.0.1.rstrip('/') }}"
+  command: >
+    rsync \
+      -ai --delete \
+      --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' \
+      {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/ \
+      {{ datadir_value.msg.0.1.rstrip('/') }}
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
@@ -104,7 +129,12 @@
     - percona-server-tools-setup-slave-replication-set-permissions
 
 - name: setup slave replication | pull debian.cnf
-  command: "rsync -ai --checksum --delete -e ssh {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf /etc/mysql/debian.cnf"
+  command: >
+    rsync \
+      -ai --checksum --delete \
+      -e ssh \
+      {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf \
+      /etc/mysql/debian.cnf
   register: pull_debian_cnf
   changed_when: pull_debian_cnf.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
