@@ -17,6 +17,7 @@
 
 - name: setup slave replication | make a backup
   shell: >
+    ulimit -n {{ percona_server_tools_ulimit }} && \
     innobackupex \
       --no-timestamp \
       {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %}--user={{ percona_server_tools_setup_slave_replication.innobackupex.user }}{% endif %} \
@@ -32,6 +33,7 @@
 
 - name: setup slave replication | prepare the backup
   shell: >
+    ulimit -n {{ percona_server_tools_ulimit }} && \
     innobackupex \
       --apply-log \
       {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %}--user={{ percona_server_tools_setup_slave_replication.innobackupex.user }}{% endif %} \
