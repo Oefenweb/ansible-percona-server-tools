@@ -67,6 +67,13 @@
   tags:
     - percona-server-tools-setup-slave-replication-get-datadir
 
+- set_fact:
+    percona_server_datadir: "{{ datadir_value.msg.0.1 if datadir_value.msg.0.1 is defined else datadir_value.msg }}"
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  tags:
+    - percona-server-tools-store-datadir
+    - percona-server-tools-store-datadir-set-fact
+
 - name: setup slave replication | get master
   command: cat {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info
   register: master_log_information
@@ -99,7 +106,7 @@
 
 - name: setup slave replication | purge datadir
   file:
-    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    path: "{{ percona_server_datadir.rstrip('/') }}"
     state: absent
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
@@ -111,7 +118,7 @@
       -ai --delete \
       --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' \
       {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/ \
-      {{ datadir_value.msg.0.1.rstrip('/') }}
+      {{ percona_server_datadir.rstrip('/') }}
   register: pull_backup
   changed_when: pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
@@ -120,7 +127,7 @@
 
 - name: setup slave replication | set permissions
   file:
-    path: "{{ datadir_value.msg.0.1.rstrip('/') }}"
+    path: "{{ percona_server_datadir.rstrip('/') }}"
     owner: mysql
     group: mysql
     recurse: true
