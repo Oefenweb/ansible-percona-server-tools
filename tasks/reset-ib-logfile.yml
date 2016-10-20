@@ -1,10 +1,17 @@
 # tasks file for percona-server-tools
 ---
-- name: reset ib logfile | store InnoDB shutdown mode
+- name: reset ib logfile | get InnoDB shutdown mode
   mysql_variables:
     variable: innodb_fast_shutdown
   register: innodb_fast_shutdown_value
   when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
+  tags:
+    - percona-server-tools-reset-ib-logfile-check-innodb-shutdown-mode
+
+# Needed because of Ansible 1 / 2 differences
+- name: reset ib logfile | store InnoDB shutdown mode (as fact)
+  set_fact:
+     percona_server_tools_innodb_fast_shutdown: "{{ innodb_fast_shutdown_value.msg.0.1 if innodb_fast_shutdown_value.msg.0.1 is defined else innodb_fast_shutdown_value.msg }}"
   tags:
     - percona-server-tools-reset-ib-logfile-check-innodb-shutdown-mode
 
@@ -27,7 +34,7 @@
   file:
     path: "{{ item }}"
     state: absent
-  with_items: percona_server_tools_reset_ib_logfile.ib_logfiles | default(['/var/lib/mysql/ib_logfile0', '/var/lib/mysql/ib_logfile1'])
+  with_items: "{{ percona_server_tools_reset_ib_logfile.ib_logfiles | default(['/var/lib/mysql/ib_logfile0', '/var/lib/mysql/ib_logfile1']) }}"
   tags:
     - percona-server-tools-reset-ib-logfile-remove
 
@@ -41,7 +48,7 @@
 - name: reset ib logfile | restore InnoDB shutdown mode
   mysql_variables:
     variable: innodb_fast_shutdown
-    value: "{{ innodb_fast_shutdown_value.msg.0.1 }}"
+    value: "{{ percona_server_tools_innodb_fast_shutdown }}"
   when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
   tags:
     - percona-server-tools-reset-ib-logfile-restore-innodb-shutdown-mode

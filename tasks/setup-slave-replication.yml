@@ -67,6 +67,7 @@
   tags:
     - percona-server-tools-setup-slave-replication-get-datadir
 
+# Needed because of Ansible 1 / 2 differences
 - name: setup slave replication | set datadir
   set_fact:
     percona_server_tools_datadir: "{{ datadir_value.msg.0.1 if datadir_value.msg.0.1 is defined else datadir_value.msg }}"
