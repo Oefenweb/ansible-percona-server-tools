@@ -25,8 +25,8 @@
       {% if percona_server_tools_setup_slave_replication.innobackupex.parallel is defined and percona_server_tools_setup_slave_replication.innobackupex.parallel > 1 %}--parallel={{ percona_server_tools_setup_slave_replication.innobackupex.parallel }}{% endif %} \
       {% if percona_server_tools_setup_slave_replication.innobackupex.rsync is defined and percona_server_tools_setup_slave_replication.innobackupex.rsync %}--rsync{% endif %} \
       {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
-  register: make_a_backup
-  failed_when: "make_a_backup.rc != 0 or make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  register: _make_a_backup
+  failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-make-a-backup
@@ -40,8 +40,8 @@
       {% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}'{% endif %} \
       {% if percona_server_tools_setup_slave_replication.innobackupex.use_memory is defined %}--use-memory={{ percona_server_tools_setup_slave_replication.innobackupex.use_memory }}{% endif %} \
       {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
-  register: prepare_a_backup
-  failed_when: "prepare_a_backup.rc != 0 or prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  register: _prepare_a_backup
+  failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-prepare-the-backup
@@ -53,8 +53,8 @@
       -e 'ssh{% if percona_server_tools_setup_slave_replication.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication.ssh_opts | join(" ") }}{% endif %}' \
       {{ percona_server_tools_setup_slave_replication.master.host }}:{{percona_server_tools_setup_slave_replication.innobackupex.backup_dir}}/ \
       {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
-  register: pull_backup
-  changed_when: pull_backup.stdout_lines | length > 0
+  register: _pull_backup
+  changed_when: _pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-pull-backup
@@ -62,22 +62,21 @@
 - name: setup slave replication | get datadir
   mysql_variables:
     variable: datadir
-  register: datadir_value
+  register: _datadir_value
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-get-datadir
 
-# Needed because of Ansible 1 / 2 differences
 - name: setup slave replication | set datadir
   set_fact:
-    percona_server_tools_datadir: "{{ datadir_value.msg.0.1 if datadir_value.msg.0.1 is defined else datadir_value.msg }}"
+    percona_server_tools_datadir: "{{ _datadir_value.msg }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-set-datadir
 
 - name: setup slave replication | get master
   command: cat {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info
-  register: master_log_information
+  register: _master_log_information
   changed_when: false
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
@@ -120,8 +119,8 @@
       --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' \
       {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/ \
       {{ percona_server_tools_datadir.rstrip('/') }}
-  register: pull_backup
-  changed_when: pull_backup.stdout_lines | length > 0
+  register: _pull_backup
+  changed_when: _pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-copy-back
@@ -143,8 +142,8 @@
       -e ssh \
       {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf \
       /etc/mysql/debian.cnf
-  register: pull_debian_cnf
-  changed_when: pull_debian_cnf.stdout_lines | length > 0
+  register: _pull_debian_cnf
+  changed_when: _pull_debian_cnf.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-pull-debian.cnf
@@ -163,8 +162,8 @@
     master_host: "{{ percona_server_tools_setup_slave_replication.master.host }}"
     master_user: "{{ percona_server_tools_setup_slave_replication.master.user }}"
     master_password: "{{ percona_server_tools_setup_slave_replication.master.password }}"
-    master_log_file: "{{ master_log_information.stdout.split()[0] }}"
-    master_log_pos: "{{ master_log_information.stdout.split()[1] }}"
+    master_log_file: "{{ _master_log_information.stdout.split()[0] }}"
+    master_log_pos: "{{ _master_log_information.stdout.split()[1] }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-change-master
@@ -179,8 +178,8 @@
 - name: setup slave replication | get slave
   mysql_replication:
     mode: getslave
-  register: slave_information
+  register: _slave_information
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
-  failed_when: slave_information.Slave_IO_Running != 'Yes' or slave_information.Slave_SQL_Running != 'Yes'
+  failed_when: _slave_information.Slave_IO_Running != 'Yes' or _slave_information.Slave_SQL_Running != 'Yes'
   tags:
     - percona-server-tools-setup-slave-replication-get-slave
