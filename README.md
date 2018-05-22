@@ -36,7 +36,6 @@ Sets up slave replication on one or more slaves from a healthy master. Assumes t
 
 **Notes**
 
-* Recommends Ansible `>= 1.9.0.1` because of all the bugs and changes in the `mysql_replication` module
 * Recommends using the `any_errors_fatal` [option](http://docs.ansible.com/ansible/playbooks_delegation.html#interrupt-execution-on-any-error) to interrupt execution on any error
 
 - - -
@@ -69,7 +68,6 @@ Sets up master replication on one master from a healthy master. Assumes that the
 
 **Notes**
 
-* Requires Ansible `>= 1.9.0.1` because of all the bugs and changes in the `mysql_replication` module
 * Recommends using the `any_errors_fatal` [option](http://docs.ansible.com/ansible/playbooks_delegation.html#interrupt-execution-on-any-error) to interrupt execution on any error
 * Requires `master(1|2).user` to have both `GRANT REPLICATION SLAVE` and `REPLICATION CLIENT` grants
 
