@@ -1,3 +1,12 @@
 # vars file for percona-server-tools
 ---
 percona_server_tools_ulimit: 65535
+
+percona_server_tools_my_init_file: /etc/mysql/my.init
+percona_server_tools_my_cnf_file: /etc/mysql/my.cnf
+percona_server_tools_my_cnf_file_safe: "{{ percona_server_tools_my_cnf_file }}-safe"
+
+percona_server_tools_preset_query_response_time_variables: '^query_response_time_'
+
+percona_server_tools_mysqld_user: mysql
+percona_server_tools_mysqld_start_timeout: 30
