@@ -1,12 +1,37 @@
 # tasks file for percona-server-tools
 ---
-- include: reset-root-password.yml
-  when: percona_server_tools_reset_root_password.run | default(false)
+- name: reset root password | get mysql version
+  shell: >
+    mysqld --version | sed -ne 's/[^0-9]*\(\([0-9]\.\)\{0,4\}[0-9][^.]\).*/\1/p'
+  register: _mysql_version
+  changed_when: false
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-get-mysql-version
+
+- include: reset-root-password-lt-57.yml
+  when:
+    - percona_server_tools_reset_root_password.run | default(false)
+    - _mysql_version.stdout is version('5.7', '<')
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-reset-root-password
+    - percona-server-tools-reset-root-password-lt-57
+
+- include: reset-root-password-ge-57.yml
+  when:
+    - percona_server_tools_reset_root_password.run | default(false)
+    - _mysql_version.stdout is version('5.7', '>=')
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-reset-root-password
+    - percona-server-tools-reset-root-password-ge-57
 
 - include: reset-ib-logfile.yml
   when: percona_server_tools_reset_ib_logfile.run | default(false)
