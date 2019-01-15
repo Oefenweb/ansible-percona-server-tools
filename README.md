@@ -19,6 +19,7 @@ Uses the `debian-sys-maint` from `/etc/mysql/debian.cnf` to login with.
 * `percona_server_tools_reset_root_password.run`: [default: `false`]: Whether or not to run `reset-root-password.yml`
 
 * `percona_server_tools_reset_root_password.root_password`: [required]: Root password
+* `percona_server_tools_reset_root_password.unsafe_variables`: [optional, default: `[]`]: Variables (e.g. from `plugins`) that cause `mysqld` not to start when started with `--skip-grant-tables` (e.g. `^query_response_time_`)
 
 ##### Resize InnoDB logs
 
