@@ -7,11 +7,19 @@
   tags:
     - percona-server-tools-setup-master-replication-check-service
 
-- name: setup master replication | create (backup) directory
+- name: setup master replication | remove (backup) directory
   file:
     path: "{{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}"
     state: absent
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-remove-backup-directory
+
+- name: setup master replication | create (backup) directory
+  file:
+    path: "{{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}"
+    state: directory
+  when: inventory_hostname != percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-create-backup-directory
 
@@ -134,6 +142,8 @@
   when: inventory_hostname in percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-set-permissions
+
+# TODO: Check that /etc/mysql/debian.cnf is present
 
 - name: setup master replication | pull debian.cnf
   command: >

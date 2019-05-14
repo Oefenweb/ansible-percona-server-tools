@@ -7,11 +7,19 @@
   tags:
     - percona-server-tools-setup-slave-replication-check-service
 
-- name: setup slave replication | create (backup) directory
+- name: setup slave replication | remove (backup) directory
   file:
     path: "{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
     state: absent
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
+  tags:
+    - percona-server-tools-setup-slave-replication-remove-backup-directory
+
+- name: setup slave replication | create (backup) directory
+  file:
+    path: "{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
+    state: directory
+  when: inventory_hostname != percona_server_tools_setup_slave_replication.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-create-backup-directory
 
@@ -134,6 +142,8 @@
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-set-permissions
+
+# TODO: Check that /etc/mysql/debian.cnf is present
 
 - name: setup slave replication | pull debian.cnf
   command: >
