@@ -69,9 +69,8 @@
     - percona-server-tools-setup-slave-replication-stop-slave
 
 - name: setup slave replication | reset slave
-  command: >
-    mysql -e 'RESET SLAVE ALL;'
-  changed_when: false
+  mysql_replication:
+    mode: resetslaveall
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-reset-slave
