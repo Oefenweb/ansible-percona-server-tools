@@ -19,7 +19,7 @@
   file:
     path: "{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
     state: directory
-  when: inventory_hostname != percona_server_tools_setup_slave_replication.inventory.master
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-create-backup-directory
 
@@ -143,18 +143,26 @@
   tags:
     - percona-server-tools-setup-slave-replication-set-permissions
 
-# TODO: Check that /etc/mysql/debian.cnf is present
+- name: setup slave replication | stat debian.cnf
+  stat:
+    path: "{{ percona_server_tools_debian_cnf_file }}"
+  register: _stat_debian_cnf
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-stat-debian.cnf
 
 - name: setup slave replication | pull debian.cnf
   command: >
     rsync \
       -ai --checksum --delete \
       -e ssh \
-      {{ percona_server_tools_setup_slave_replication.master.host }}:/etc/mysql/debian.cnf \
-      /etc/mysql/debian.cnf
+      {{ percona_server_tools_setup_slave_replication.master.host }}:{{ percona_server_tools_debian_cnf_file }} \
+      {{ percona_server_tools_debian_cnf_file }}
   register: _pull_debian_cnf
   changed_when: _pull_debian_cnf.stdout_lines | length > 0
-  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  when:
+    - inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+    - _stat_debian_cnf.stat.exists
   tags:
     - percona-server-tools-setup-slave-replication-pull-debian.cnf
 
