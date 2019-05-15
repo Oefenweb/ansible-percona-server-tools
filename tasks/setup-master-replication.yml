@@ -136,8 +136,8 @@
 - name: setup master replication | set permissions
   file:
     path: "{{ percona_server_tools_datadir.rstrip('/') }}"
-    owner: mysql
-    group: mysql
+    owner: "{{ percona_server_tools_mysqld_user }}"
+    group: "{{ percona_server_tools_mysqld_user }}"
     recurse: true
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
