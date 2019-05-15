@@ -15,14 +15,6 @@
   tags:
     - percona-server-tools-setup-master-replication-remove-backup-directory
 
-- name: setup master replication | create (backup) directory
-  file:
-    path: "{{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}"
-    state: directory
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-create-backup-directory
-
 - name: setup master replication | make a backup
   shell: >
     ulimit -n {{ percona_server_tools_ulimit }} && \
@@ -54,19 +46,6 @@
   tags:
     - percona-server-tools-setup-master-replication-prepare-the-backup
 
-- name: setup master replication | pull backup
-  command: >
-    rsync \
-      -ai --delete \
-      -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}' \
-      {{ percona_server_tools_setup_master_replication.master1.host }}:{{percona_server_tools_setup_master_replication.innobackupex.backup_dir}}/ \
-      {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}
-  register: _pull_backup
-  changed_when: _pull_backup.stdout_lines | length > 0
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-pull-backup
-
 - name: setup master replication | get datadir
   mysql_variables:
     variable: datadir
@@ -82,14 +61,6 @@
   tags:
     - percona-server-tools-setup-master-replication-set-datadir
 
-- name: setup master replication | get master
-  command: cat {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/xtrabackup_binlog_info
-  register: _master1_log_information
-  changed_when: false
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-get-master
-
 - name: setup master replication | stop slave
   mysql_replication:
     mode: stopslave
@@ -98,8 +69,8 @@
     - percona-server-tools-setup-master-replication-stop-slave
 
 - name: setup master replication | reset slave
-  command: mysql -e 'RESET SLAVE ALL;'
-  changed_when: false
+  mysql_replication:
+    mode: resetslaveall
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-reset-slave
@@ -120,18 +91,18 @@
   tags:
     - percona-server-tools-setup-master-replication-purge-datadir
 
-- name: setup master replication | copy back
+- name: setup master replication | pull backup
   command: >
     rsync \
       -ai --delete \
-      --exclude 'backup-my.cnf' --exclude 'xtrabackup_*' \
-      {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/ \
+      -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}' \
+      {{ percona_server_tools_setup_master_replication.master1.host }}:{{percona_server_tools_setup_master_replication.innobackupex.backup_dir}}/ \
       {{ percona_server_tools_datadir.rstrip('/') }}
   register: _pull_backup
   changed_when: _pull_backup.stdout_lines | length > 0
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
-    - percona-server-tools-setup-master-replication-copy-back
+    - percona-server-tools-setup-master-replication-pull-backup
 
 - name: setup master replication | set permissions
   file:
@@ -173,6 +144,15 @@
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-start-service
+
+- name: setup master replication | get master
+  command: >
+    cat {{ percona_server_tools_datadir.rstrip('/') }}/xtrabackup_binlog_info
+  register: _master1_log_information
+  changed_when: false
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
+  tags:
+    - percona-server-tools-setup-master-replication-get-master
 
 - name: setup master replication | change master
   mysql_replication:
@@ -221,8 +201,8 @@
     - percona-server-tools-setup-master-replication-stop-slave
 
 - name: setup master replication | reset slave
-  command: mysql -e 'RESET SLAVE ALL;'
-  changed_when: false
+  mysql_replication:
+    mode: resetslaveall
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-reset-slave
