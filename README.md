@@ -147,7 +147,8 @@ None
         slaves:
           - db-02.example.com
 
-      backup_dir: /tmp/xtrabackup
+      innobackupex:
+        backup_dir: /tmp/xtrabackup
 
       master:
         host: "{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}"
