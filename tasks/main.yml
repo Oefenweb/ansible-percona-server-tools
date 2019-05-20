@@ -49,6 +49,14 @@
     - percona-server-tools
     - percona-server-tools-setup-slave-replication
 
+- include: setup-slave-replication-gtid.yml
+  when: percona_server_tools_setup_slave_replication_gtid.run | default(false)
+  tags:
+    - configuration
+    - tools
+    - percona-server-tools
+    - percona-server-tools-setup-slave-replication-gtid
+
 - include: setup-master-replication.yml
   when: percona_server_tools_setup_master_replication.run | default(false)
   tags:
