@@ -1,6 +1,7 @@
 # meta file for percona-server-tools
 ---
 galaxy_info:
+  role_name: percona-server-tools
   author: Mischa ter Smitten
   company: Oefenweb.nl B.V.
   description: Manage percona-server server (or any other flavour of MySQL) in Debian-like systems
