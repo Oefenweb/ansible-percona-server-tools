@@ -96,7 +96,7 @@
     rsync \
       -ai --delete \
       -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}' \
-      {{ percona_server_tools_setup_master_replication.master1.host }}:{{percona_server_tools_setup_master_replication.innobackupex.backup_dir}}/ \
+      {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/ \
       {{ percona_server_tools_datadir.rstrip('/') }}
   register: _pull_backup
   changed_when: _pull_backup.stdout_lines | length > 0
