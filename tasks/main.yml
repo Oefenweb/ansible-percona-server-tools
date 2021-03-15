@@ -1,4 +1,4 @@
-# tasks file for percona-server-tools
+# tasks file
 ---
 - name: get mysql version
   shell: >

@@ -1,4 +1,4 @@
-# tasks file for percona-server-tools
+# tasks file
 ---
 - name: setup slave replication | check service
   service:
