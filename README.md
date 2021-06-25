@@ -1,7 +1,7 @@
 ## percona-server-tools
 
 [![CI](https://github.com/Oefenweb/ansible-percona-server-tools/workflows/CI/badge.svg)](https://github.com/Oefenweb/ansible-percona-server-tools/actions?query=workflow%3ACI)
-[![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-percona--server--tools-blue.svg)](https://galaxy.ansible.com/Oefenweb/percona-server-tools)
+[![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-percona--server--tools-blue.svg)](https://galaxy.ansible.com/Oefenweb/percona_server_tools)
 
 Manage [percona-server](https://www.percona.com/software/mysql-database/percona-server) server (or any other flavour of MySQL) in Debian-like systems.
 
