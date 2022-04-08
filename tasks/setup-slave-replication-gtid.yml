@@ -93,11 +93,11 @@
 
 - name: setup slave replication gtid | pull backup
   command: >
-    rsync \
-      -ai --delete \
-      -e 'ssh{% if percona_server_tools_setup_slave_replication_gtid.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication_gtid.ssh_opts | join(" ") }}{% endif %}' \
-      {{ percona_server_tools_setup_slave_replication_gtid.master.host }}:{{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}/ \
-      {{ percona_server_tools_datadir.rstrip('/') }}
+    rsync
+    -ai --delete
+    -e 'ssh{% if percona_server_tools_setup_slave_replication_gtid.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication_gtid.ssh_opts | join(" ") }}{% endif %}'
+    {{ percona_server_tools_setup_slave_replication_gtid.master.host }}:{{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}/
+    {{ percona_server_tools_datadir.rstrip('/') }}
   register: _pull_backup
   changed_when: _pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
@@ -124,11 +124,11 @@
 
 - name: setup slave replication gtid | pull debian.cnf
   command: >
-    rsync \
-      -ai --checksum --delete \
-      -e ssh \
-      {{ percona_server_tools_setup_slave_replication_gtid.master.host }}:{{ percona_server_tools_debian_cnf_file }} \
-      {{ percona_server_tools_debian_cnf_file }}
+    rsync
+    -ai --checksum --delete
+    -e ssh
+    {{ percona_server_tools_setup_slave_replication_gtid.master.host }}:{{ percona_server_tools_debian_cnf_file }}
+    {{ percona_server_tools_debian_cnf_file }}
   register: _pull_debian_cnf
   changed_when: _pull_debian_cnf.stdout_lines | length > 0
   when:
@@ -156,9 +156,9 @@
 
 - name: setup slave replication gtid | reset master
   command: >
-    mysql \
-      -e "RESET MASTER;" \
-      --skip-column-names
+    mysql
+    -e "RESET MASTER;"
+    --skip-column-names
   when:
     - inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
     - _master_log_information.stdout.split() | length > 2
@@ -167,9 +167,9 @@
 
 - name: setup slave replication gtid | set gtid_purged
   command: >
-    mysql \
-      -e "SET GLOBAL gtid_purged='{{ _master_log_information.stdout.split()[2] }}';" \
-      --skip-column-names
+    mysql
+    -e "SET GLOBAL gtid_purged='{{ _master_log_information.stdout.split()[2] }}';"
+    --skip-column-names
   register: _set_gtid_purged
   when:
     - inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves

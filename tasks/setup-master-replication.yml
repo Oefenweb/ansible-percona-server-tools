@@ -93,11 +93,11 @@
 
 - name: setup master replication | pull backup
   command: >
-    rsync \
-      -ai --delete \
-      -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}' \
-      {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/ \
-      {{ percona_server_tools_datadir.rstrip('/') }}
+    rsync
+    -ai --delete
+    -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}'
+    {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}/
+    {{ percona_server_tools_datadir.rstrip('/') }}
   register: _pull_backup
   changed_when: _pull_backup.stdout_lines | length > 0
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
@@ -124,11 +124,11 @@
 
 - name: setup master replication | pull debian.cnf
   command: >
-    rsync \
-      -ai --checksum --delete \
-      -e ssh \
-      {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_debian_cnf_file }} \
-      {{ percona_server_tools_debian_cnf_file }}
+    rsync
+    -ai --checksum --delete
+    -e ssh
+    {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_debian_cnf_file }}
+    {{ percona_server_tools_debian_cnf_file }}
   register: _pull_debian_cnf
   changed_when: _pull_debian_cnf.stdout_lines | length > 0
   when:
