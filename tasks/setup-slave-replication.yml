@@ -145,6 +145,14 @@
   tags:
     - percona-server-tools-setup-slave-replication-start-service
 
+- name: setup slave replication | set offline_mode to 1 (online)
+  mysql_variables:
+    variable: offline_mode
+    value: '0'
+  when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-set-offline_mode
+
 - name: setup slave replication | get master
   command: >
     cat {{ percona_server_tools_datadir.rstrip('/') }}/xtrabackup_binlog_info
