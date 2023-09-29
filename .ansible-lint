@@ -1,7 +1,6 @@
 ---
 warn_list:
   - role-name
+  - name[play]
   - name[casing]
-  - '204'
-  - '303'
-  - '306'
+  - risky-shell-pipe
