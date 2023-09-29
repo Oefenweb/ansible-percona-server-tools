@@ -65,14 +65,14 @@
 
 - name: setup slave replication | stop slave
   community.mysql.mysql_replication:
-    mode: stopslave
+    mode: stopreplica
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-stop-slave
 
 - name: setup slave replication | reset slave
   community.mysql.mysql_replication:
-    mode: resetslaveall
+    mode: resetreplicaall
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-reset-slave
@@ -166,7 +166,7 @@
 
 - name: setup slave replication | change master
   community.mysql.mysql_replication:
-    mode: changemaster
+    mode: changeprimary
     master_host: "{{ percona_server_tools_setup_slave_replication.master.host }}"
     master_user: "{{ percona_server_tools_setup_slave_replication.master.user }}"
     master_password: "{{ percona_server_tools_setup_slave_replication.master.password }}"
@@ -178,14 +178,14 @@
 
 - name: setup slave replication | start slave
   community.mysql.mysql_replication:
-    mode: startslave
+    mode: startreplica
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-start-slave
 
 - name: setup slave replication | get slave
   community.mysql.mysql_replication:
-    mode: getslave
+    mode: getreplica
   register: _slave_information
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   failed_when: _slave_information.Slave_IO_Running != 'Yes' or _slave_information.Slave_SQL_Running != 'Yes'

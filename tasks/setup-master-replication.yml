@@ -65,14 +65,14 @@
 
 - name: setup master replication | stop slave
   community.mysql.mysql_replication:
-    mode: stopslave
+    mode: stopreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-stop-slave
 
 - name: setup master replication | reset slave
   community.mysql.mysql_replication:
-    mode: resetslaveall
+    mode: resetreplicaall
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-reset-slave
@@ -166,7 +166,7 @@
 
 - name: setup master replication | change master
   community.mysql.mysql_replication:
-    mode: changemaster
+    mode: changeprimary
     master_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
     master_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
     master_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
@@ -178,14 +178,14 @@
 
 - name: setup master replication | start slave
   community.mysql.mysql_replication:
-    mode: startslave
+    mode: startreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-start-slave
 
 - name: setup master replication | get slave
   community.mysql.mysql_replication:
-    mode: getslave
+    mode: getreplica
   register: _slave2_information
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   failed_when: _slave2_information.Slave_IO_Running != 'Yes' or _slave2_information.Slave_SQL_Running != 'Yes'
@@ -194,7 +194,7 @@
 
 - name: setup master replication | get master
   community.mysql.mysql_replication:
-    mode: getmaster
+    mode: getprimary
     login_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
     login_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
     login_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
@@ -205,21 +205,21 @@
 
 - name: setup master replication | stop slave
   community.mysql.mysql_replication:
-    mode: stopslave
+    mode: stopreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-stop-slave
 
 - name: setup master replication | reset slave
   community.mysql.mysql_replication:
-    mode: resetslaveall
+    mode: resetreplicaall
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-reset-slave
 
 - name: setup master replication | change master
   community.mysql.mysql_replication:
-    mode: changemaster
+    mode: changeprimary
     master_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
     master_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
     master_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
@@ -231,14 +231,14 @@
 
 - name: setup master replication | start slave
   community.mysql.mysql_replication:
-    mode: startslave
+    mode: startreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-start-slave
 
 - name: setup master replication | get slave
   community.mysql.mysql_replication:
-    mode: getslave
+    mode: getreplica
   register: _slave1_information
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   failed_when: _slave1_information.Slave_IO_Running != 'Yes' or _slave1_information.Slave_SQL_Running != 'Yes'
