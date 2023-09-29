@@ -27,6 +27,7 @@
       {{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}
   register: _make_a_backup
   failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  changed_when: true
   when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-gtid-make-a-backup
@@ -42,6 +43,7 @@
       {{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}
   register: _prepare_a_backup
   failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  changed_when: true
   when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-gtid-prepare-the-backup
@@ -91,7 +93,7 @@
   tags:
     - percona-server-tools-setup-slave-replication-gtid-purge-datadir
 
-- name: setup slave replication gtid | pull backup
+- name: setup slave replication gtid | pull backup  # noqa command-instead-of-module
   ansible.builtin.command: >
     rsync
     -ai --delete
@@ -122,7 +124,7 @@
   tags:
     - percona-server-tools-setup-slave-replication-gtid-stat-debian.cnf
 
-- name: setup slave replication gtid | pull debian.cnf
+- name: setup slave replication gtid | pull debian.cnf  # noqa command-instead-of-module
   ansible.builtin.command: >
     rsync
     -ai --checksum --delete

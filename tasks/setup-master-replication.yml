@@ -27,6 +27,7 @@
       {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}
   register: _make_a_backup
   failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  changed_when: true
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-make-a-backup
@@ -42,6 +43,7 @@
       {{ percona_server_tools_setup_master_replication.innobackupex.backup_dir }}
   register: _prepare_a_backup
   failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  changed_when: true
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-prepare-the-backup
@@ -91,7 +93,7 @@
   tags:
     - percona-server-tools-setup-master-replication-purge-datadir
 
-- name: setup master replication | pull backup
+- name: setup master replication | pull backup  # noqa command-instead-of-module
   ansible.builtin.command: >
     rsync
     -ai --delete
@@ -122,7 +124,7 @@
   tags:
     - percona-server-tools-setup-master-replication-stat-debian.cnf
 
-- name: setup master replication | pull debian.cnf
+- name: setup master replication | pull debian.cnf  # noqa command-instead-of-module
   ansible.builtin.command: >
     rsync
     -ai --checksum --delete
