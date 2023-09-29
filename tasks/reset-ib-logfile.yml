@@ -1,7 +1,7 @@
 # tasks file
 ---
 - name: reset ib logfile | get InnoDB shutdown mode
-  mysql_variables:
+  community.mysql.mysql_variables:
     variable: innodb_fast_shutdown
   register: _innodb_fast_shutdown_value
   when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
@@ -9,13 +9,13 @@
     - percona-server-tools-reset-ib-logfile-check-innodb-shutdown-mode
 
 - name: reset ib logfile | store InnoDB shutdown mode (as fact)
-  set_fact:
+  ansible.builtin.set_fact:
     percona_server_tools_innodb_fast_shutdown: "{{ _innodb_fast_shutdown_value.msg }}"
   tags:
     - percona-server-tools-reset-ib-logfile-check-innodb-shutdown-mode
 
 - name: reset ib logfile | set InnoDB shutdown mode
-  mysql_variables:
+  community.mysql.mysql_variables:
     variable: innodb_fast_shutdown
     value: "1"
   when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
@@ -23,14 +23,14 @@
     - percona-server-tools-reset-ib-logfile-set-innodb-shutdown-mode
 
 - name: reset ib logfile | stop service
-  service:
+  ansible.builtin.service:
     name: mysql
     state: stopped
   tags:
     - percona-server-tools-reset-ib-logfile-stop-service
 
 - name: reset ib logfile | remove ib_logfile(s)
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   with_items: "{{ percona_server_tools_reset_ib_logfile.ib_logfiles | default(['/var/lib/mysql/ib_logfile0', '/var/lib/mysql/ib_logfile1']) }}"
@@ -38,14 +38,14 @@
     - percona-server-tools-reset-ib-logfile-remove
 
 - name: reset ib logfile | start service
-  service:
+  ansible.builtin.service:
     name: mysql
     state: started
   tags:
     - percona-server-tools-reset-ib-logfile-start-service
 
 - name: reset ib logfile | restore InnoDB shutdown mode
-  mysql_variables:
+  community.mysql.mysql_variables:
     variable: innodb_fast_shutdown
     value: "{{ percona_server_tools_innodb_fast_shutdown }}"
   when: percona_server_tools_reset_ib_logfile.check_innodb_shutdown_mode | default(true)
