@@ -65,14 +65,14 @@
 
 - name: setup slave replication gtid | stop slave
   community.mysql.mysql_replication:
-    mode: stopreplica
+    mode: stopslave
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-stop-slave
 
 - name: setup slave replication gtid | reset slave
   community.mysql.mysql_replication:
-    mode: resetreplicaall
+    mode: resetslaveall
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-reset-slave
@@ -191,7 +191,7 @@
 
 - name: setup slave replication gtid | change master
   community.mysql.mysql_replication:
-    mode: changeprimary
+    mode: changemaster
     master_host: "{{ percona_server_tools_setup_slave_replication_gtid.master.host }}"
     master_user: "{{ percona_server_tools_setup_slave_replication_gtid.master.user }}"
     master_password: "{{ percona_server_tools_setup_slave_replication_gtid.master.password }}"
@@ -202,14 +202,14 @@
 
 - name: setup slave replication gtid | start slave
   community.mysql.mysql_replication:
-    mode: startreplica
+    mode: startslave
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-start-slave
 
 - name: setup slave replication gtid | get slave
   community.mysql.mysql_replication:
-    mode: getreplica
+    mode: getslave
   register: _slave_information
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   failed_when: _slave_information.Slave_IO_Running != 'Yes' or _slave_information.Slave_SQL_Running != 'Yes'
