@@ -1,14 +1,14 @@
 # tasks file
 ---
 - name: setup slave replication gtid | check service
-  service:
+  ansible.builtin.service:
     name: mysql
     state: started
   tags:
     - percona-server-tools-setup-slave-replication-gtid-check-service
 
 - name: setup slave replication gtid | remove (backup) directory
-  file:
+  ansible.builtin.file:
     path: "{{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}"
     state: absent
   when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
@@ -16,7 +16,7 @@
     - percona-server-tools-setup-slave-replication-gtid-remove-backup-directory
 
 - name: setup slave replication gtid | make a backup
-  shell: >
+  ansible.builtin.shell: >
     ulimit -n {{ percona_server_tools_ulimit }} && \
     innobackupex \
       --no-timestamp \
@@ -27,12 +27,13 @@
       {{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}
   register: _make_a_backup
   failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  changed_when: true
   when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-gtid-make-a-backup
 
 - name: setup slave replication gtid | prepare the backup
-  shell: >
+  ansible.builtin.shell: >
     ulimit -n {{ percona_server_tools_ulimit }} && \
     innobackupex \
       --apply-log \
@@ -42,12 +43,13 @@
       {{ percona_server_tools_setup_slave_replication_gtid.innobackupex.backup_dir }}
   register: _prepare_a_backup
   failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+  changed_when: true
   when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
   tags:
     - percona-server-tools-setup-slave-replication-gtid-prepare-the-backup
 
 - name: setup slave replication gtid | get datadir
-  mysql_variables:
+  community.mysql.mysql_variables:
     variable: datadir
   register: _datadir_value
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
@@ -55,28 +57,28 @@
     - percona-server-tools-setup-slave-replication-gtid-get-datadir
 
 - name: setup slave replication gtid | set datadir
-  set_fact:
+  ansible.builtin.set_fact:
     percona_server_tools_datadir: "{{ _datadir_value.msg }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-set-datadir
 
 - name: setup slave replication gtid | stop slave
-  mysql_replication:
+  community.mysql.mysql_replication:
     mode: stopslave
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-stop-slave
 
 - name: setup slave replication gtid | reset slave
-  mysql_replication:
+  community.mysql.mysql_replication:
     mode: resetslaveall
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-reset-slave
 
 - name: setup slave replication gtid | stop service
-  service:
+  ansible.builtin.service:
     name: mysql
     state: stopped
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
@@ -84,15 +86,15 @@
     - percona-server-tools-setup-slave-replication-gtid-stop-service
 
 - name: setup slave replication gtid | purge datadir
-  file:
+  ansible.builtin.file:
     path: "{{ percona_server_tools_datadir.rstrip('/') }}"
     state: absent
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-purge-datadir
 
-- name: setup slave replication gtid | pull backup
-  command: >
+- name: setup slave replication gtid | pull backup  # noqa command-instead-of-module
+  ansible.builtin.command: >
     rsync
     -ai --delete
     -e 'ssh{% if percona_server_tools_setup_slave_replication_gtid.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication_gtid.ssh_opts | join(" ") }}{% endif %}'
@@ -105,7 +107,7 @@
     - percona-server-tools-setup-slave-replication-gtid-pull-backup
 
 - name: setup slave replication gtid | set permissions
-  file:
+  ansible.builtin.file:
     path: "{{ percona_server_tools_datadir.rstrip('/') }}"
     owner: "{{ percona_server_tools_mysqld_user }}"
     group: "{{ percona_server_tools_mysqld_user }}"
@@ -115,15 +117,15 @@
     - percona-server-tools-setup-slave-replication-gtid-set-permissions
 
 - name: setup slave replication gtid | stat debian.cnf
-  stat:
+  ansible.builtin.stat:
     path: "{{ percona_server_tools_debian_cnf_file }}"
   register: _stat_debian_cnf
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-stat-debian.cnf
 
-- name: setup slave replication gtid | pull debian.cnf
-  command: >
+- name: setup slave replication gtid | pull debian.cnf  # noqa command-instead-of-module
+  ansible.builtin.command: >
     rsync
     -ai --checksum --delete
     -e ssh
@@ -138,15 +140,23 @@
     - percona-server-tools-setup-slave-replication-gtid-pull-debian.cnf
 
 - name: setup slave replication gtid | start service
-  service:
+  ansible.builtin.service:
     name: mysql
     state: started
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-start-service
 
+- name: setup slave replication gtid | set offline_mode to 1 (online)
+  community.mysql.mysql_variables:
+    variable: offline_mode
+    value: '0'
+  when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-gtid-set-offline_mode
+
 - name: setup slave replication gtid | get master
-  command: >
+  ansible.builtin.command: >
     cat {{ percona_server_tools_datadir.rstrip('/') }}/xtrabackup_binlog_info
   register: _master_log_information
   changed_when: false
@@ -155,10 +165,11 @@
     - percona-server-tools-setup-slave-replication-gtid-get-master
 
 - name: setup slave replication gtid | reset master
-  command: >
+  ansible.builtin.command: >
     mysql
     -e "RESET MASTER;"
     --skip-column-names
+  changed_when: true
   when:
     - inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
     - _master_log_information.stdout.split() | length > 2
@@ -166,10 +177,11 @@
     - percona-server-tools-setup-slave-replication-gtid-reset-master
 
 - name: setup slave replication gtid | set gtid_purged
-  command: >
+  ansible.builtin.command: >
     mysql
     -e "SET GLOBAL gtid_purged='{{ _master_log_information.stdout.split()[2] }}';"
     --skip-column-names
+  changed_when: true
   register: _set_gtid_purged
   when:
     - inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
@@ -178,7 +190,7 @@
     - percona-server-tools-setup-slave-replication-gtid-set-gtid-purged
 
 - name: setup slave replication gtid | change master
-  mysql_replication:
+  community.mysql.mysql_replication:
     mode: changemaster
     master_host: "{{ percona_server_tools_setup_slave_replication_gtid.master.host }}"
     master_user: "{{ percona_server_tools_setup_slave_replication_gtid.master.user }}"
@@ -189,14 +201,14 @@
     - percona-server-tools-setup-slave-replication-gtid-change-master
 
 - name: setup slave replication gtid | start slave
-  mysql_replication:
+  community.mysql.mysql_replication:
     mode: startslave
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-start-slave
 
 - name: setup slave replication gtid | get slave
-  mysql_replication:
+  community.mysql.mysql_replication:
     mode: getslave
   register: _slave_information
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
