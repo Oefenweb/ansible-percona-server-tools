@@ -114,7 +114,7 @@ None
 ---
 - hosts: all
   roles:
-    - percona-server-tools
+    - oefenweb.percona-server-tools
   vars:
     percona_server_tools_reset_root_password:
       run: true
@@ -127,7 +127,7 @@ None
 ---
 - hosts: all
   roles:
-    - percona-server-tools
+    - oefenweb.percona-server-tools
   vars:
     percona_server_tools_reset_ib_logfile:
       run: true
@@ -139,7 +139,7 @@ None
 ---
 - hosts: all
   roles:
-    - percona-server-tools
+    - oefenweb.percona-server-tools
   vars:
     percona_server_tools_setup_slave_replication:
       run: true
@@ -163,7 +163,7 @@ None
 ---
 - hosts: all
   roles:
-    - percona-server-tools
+    - oefenweb.percona-server-tools
   vars:
     percona_server_tools_setup_master_replication:
       run: true
