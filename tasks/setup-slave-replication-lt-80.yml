@@ -5,7 +5,7 @@
     name: mysql
     state: started
   tags:
-    - percona-server-tools-setup-slave-replication-check-service
+    - percona-server-tools-setup-slave-replication-lt-80-check-service
 
 - name: setup slave replication | remove (backup) directory
   ansible.builtin.file:
@@ -13,7 +13,7 @@
     state: absent
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
-    - percona-server-tools-setup-slave-replication-remove-backup-directory
+    - percona-server-tools-setup-slave-replication-lt-80-remove-backup-directory
 
 - name: setup slave replication | make a backup
   ansible.builtin.shell: >
@@ -30,7 +30,7 @@
   changed_when: true
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
-    - percona-server-tools-setup-slave-replication-make-a-backup
+    - percona-server-tools-setup-slave-replication-lt-80-make-a-backup
 
 - name: setup slave replication | prepare the backup
   ansible.builtin.shell: >
@@ -46,7 +46,7 @@
   changed_when: true
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
-    - percona-server-tools-setup-slave-replication-prepare-the-backup
+    - percona-server-tools-setup-slave-replication-lt-80-prepare-the-backup
 
 - name: setup slave replication | get datadir
   community.mysql.mysql_variables:
@@ -54,28 +54,28 @@
   register: _datadir_value
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-get-datadir
+    - percona-server-tools-setup-slave-replication-lt-80-get-datadir
 
 - name: setup slave replication | set datadir
   ansible.builtin.set_fact:
     percona_server_tools_datadir: "{{ _datadir_value.msg }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-set-datadir
+    - percona-server-tools-setup-slave-replication-lt-80-set-datadir
 
 - name: setup slave replication | stop slave
   community.mysql.mysql_replication:
     mode: stopslave
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-stop-slave
+    - percona-server-tools-setup-slave-replication-lt-80-stop-slave
 
 - name: setup slave replication | reset slave
   community.mysql.mysql_replication:
     mode: resetslaveall
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-reset-slave
+    - percona-server-tools-setup-slave-replication-lt-80-reset-slave
 
 - name: setup slave replication | stop service
   ansible.builtin.service:
@@ -83,7 +83,7 @@
     state: stopped
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-stop-service
+    - percona-server-tools-setup-slave-replication-lt-80-stop-service
 
 - name: setup slave replication | purge datadir
   ansible.builtin.file:
@@ -91,7 +91,7 @@
     state: absent
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-purge-datadir
+    - percona-server-tools-setup-slave-replication-lt-80-purge-datadir
 
 - name: setup slave replication | pull backup  # noqa command-instead-of-module
   ansible.builtin.command: >
@@ -104,7 +104,7 @@
   changed_when: _pull_backup.stdout_lines | length > 0
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-pull-backup
+    - percona-server-tools-setup-slave-replication-lt-80-pull-backup
 
 - name: setup slave replication | set permissions
   ansible.builtin.file:
@@ -114,7 +114,7 @@
     recurse: true
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-set-permissions
+    - percona-server-tools-setup-slave-replication-lt-80-set-permissions
 
 - name: setup slave replication | stat debian.cnf
   ansible.builtin.stat:
@@ -122,7 +122,7 @@
   register: _stat_debian_cnf
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-stat-debian.cnf
+    - percona-server-tools-setup-slave-replication-lt-80-stat-debian.cnf
 
 - name: setup slave replication | pull debian.cnf  # noqa command-instead-of-module
   ansible.builtin.command: >
@@ -137,7 +137,7 @@
     - inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
     - _stat_debian_cnf.stat.exists
   tags:
-    - percona-server-tools-setup-slave-replication-pull-debian.cnf
+    - percona-server-tools-setup-slave-replication-lt-80-pull-debian.cnf
 
 - name: setup slave replication | start service
   ansible.builtin.service:
@@ -145,7 +145,7 @@
     state: started
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-start-service
+    - percona-server-tools-setup-slave-replication-lt-80-start-service
 
 - name: setup slave replication | set offline_mode to 1 (online)
   community.mysql.mysql_variables:
@@ -153,7 +153,7 @@
     value: '0'
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-set-offline_mode
+    - percona-server-tools-setup-slave-replication-lt-80-set-offline_mode
 
 - name: setup slave replication | get master
   ansible.builtin.command: >
@@ -162,7 +162,7 @@
   changed_when: false
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-get-master
+    - percona-server-tools-setup-slave-replication-lt-80-get-master
 
 - name: setup slave replication | change master
   community.mysql.mysql_replication:
@@ -174,14 +174,14 @@
     master_log_pos: "{{ _master_log_information.stdout.split()[1] }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-change-master
+    - percona-server-tools-setup-slave-replication-lt-80-change-master
 
 - name: setup slave replication | start slave
   community.mysql.mysql_replication:
     mode: startslave
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
-    - percona-server-tools-setup-slave-replication-start-slave
+    - percona-server-tools-setup-slave-replication-lt-80-start-slave
 
 - name: setup slave replication | get slave
   community.mysql.mysql_replication:
@@ -190,4 +190,4 @@
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   failed_when: _slave_information.Slave_IO_Running != 'Yes' or _slave_information.Slave_SQL_Running != 'Yes'
   tags:
-    - percona-server-tools-setup-slave-replication-get-slave
+    - percona-server-tools-setup-slave-replication-lt-80-get-slave

@@ -45,28 +45,31 @@
     - percona-server-tools-reset-ib-logfile
 
 - name: setup slave replication
-  ansible.builtin.import_tasks: setup-slave-replication.yml
+  ansible.builtin.import_tasks: setup-slave-replication-lt-80.yml
   when: percona_server_tools_setup_slave_replication.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-slave-replication
+    - percona-server-tools-setup-slave-replication-lt-80
 
 - name: setup slave replication gtid
-  ansible.builtin.import_tasks: setup-slave-replication-gtid.yml
+  ansible.builtin.import_tasks: setup-slave-replication-gtid-lt-80.yml
   when: percona_server_tools_setup_slave_replication_gtid.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-slave-replication-gtid
+    - percona-server-tools-setup-slave-replication-gtid-lt-80
 
 - name: setup master replication
-  ansible.builtin.import_tasks: setup-master-replication.yml
+  ansible.builtin.import_tasks: setup-master-replication-lt-80.yml
   when: percona_server_tools_setup_master_replication.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-master-replication
+    - percona-server-tools-setup-master-replication-lt-80
