@@ -79,7 +79,7 @@
         - percona-server-tools-setup-master-replication-lt-80
 
     - name: setup master replication | >= 8.0
-      ansible.builtin.import_tasks: setup-master-replication-lt-80.yml
+      ansible.builtin.import_tasks: setup-master-replication-ge-80.yml
       when:
         - percona_server_tools_setup_master_replication.run | default(false)
         - _mysql_version.stdout is version('8.0', '>=')
