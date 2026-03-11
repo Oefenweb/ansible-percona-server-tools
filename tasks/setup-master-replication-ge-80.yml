@@ -203,16 +203,17 @@
     -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='{{ percona_server_tools_setup_master_replication.master1.host }}', SOURCE_USER='{{ percona_server_tools_setup_master_replication.master1.user }}', SOURCE_PASSWORD='{{ percona_server_tools_setup_master_replication.master1.password }}', SOURCE_LOG_FILE='{{ _master1_log_information.stdout.split()[0] }}', SOURCE_LOG_POS={{ _master1_log_information.stdout.split()[1] }};"
     --skip-column-names
   register: _slave2_change_master
-#  community.mysql.mysql_replication:
-#    mode: changereplication
-#    master_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
-#    master_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
-#    master_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
-#    master_log_file: "{{ _master1_log_information.stdout.split()[0] }}"
-#    master_log_pos: "{{ _master1_log_information.stdout.split()[1] }}"
+  #  community.mysql.mysql_replication:
+  #    mode: changereplication
+  #    master_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
+  #    master_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
+  #    master_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
+  #    master_log_file: "{{ _master1_log_information.stdout.split()[0] }}"
+  #    master_log_pos: "{{ _master1_log_information.stdout.split()[1] }}"
   when:
     - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
     - _mysql_version.stdout is version('8.0.23', '>=')
+  changed_when: true
   tags:
     - percona-server-tools-setup-master-replication-ge-80-start-service
 
@@ -278,16 +279,17 @@
     -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='{{ percona_server_tools_setup_master_replication.master2.host }}', SOURCE_USER='{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}', SOURCE_PASSWORD='{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}', SOURCE_LOG_FILE='{{ _master2_log_information.File }}', SOURCE_LOG_POS={{ _master2_log_information.Position }};"
     --skip-column-names
   register: _slave1_change_master
-#  community.mysql.mysql_replication:
-#    mode: changereplication
-#    master_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
-#    master_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
-#    master_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
-#    master_log_file: "{{ _master2_log_information.File }}"
-#    master_log_pos: "{{ _master2_log_information.Position }}"
+  #  community.mysql.mysql_replication:
+  #    mode: changereplication
+  #    master_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
+  #    master_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
+  #    master_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+  #    master_log_file: "{{ _master2_log_information.File }}"
+  #    master_log_pos: "{{ _master2_log_information.Position }}"
   when:
     - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
     - _mysql_version.stdout is version('8.0.23', '>=')
+  changed_when: true
   tags:
     - percona-server-tools-setup-master-replication-ge-80-change-master
 
