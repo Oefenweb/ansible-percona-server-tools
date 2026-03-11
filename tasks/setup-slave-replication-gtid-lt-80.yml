@@ -164,6 +164,7 @@
   tags:
     - percona-server-tools-setup-slave-replication-gtid-lt-80-get-master
 
+# TODO: Make use of community.mysql.mysql_replication: {mode: resetprimary}
 - name: setup slave replication gtid | reset master
   ansible.builtin.command: >
     mysql
