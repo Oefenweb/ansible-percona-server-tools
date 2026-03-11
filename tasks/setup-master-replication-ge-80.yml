@@ -15,10 +15,19 @@
   tags:
     - percona-server-tools-setup-master-replication-ge-80-remove-backup-directory
 
+- name: setup master replication | create (backup) directory
+  ansible.builtin.file:
+    path: "{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}"
+    state: directory
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
+  tags:
+    - percona-server-tools-setup-master-replication-ge-80-create-backup-directory
+
 - name: setup master replication | make a backup
   ansible.builtin.shell: >
     ulimit -n {{ percona_server_tools_ulimit }} && \
     xtrabackup \
+      --backup \
       {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
       {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
       {% if percona_server_tools_setup_master_replication.xtrabackup.parallel is defined and percona_server_tools_setup_master_replication.xtrabackup.parallel > 1 %}--parallel={{ percona_server_tools_setup_master_replication.xtrabackup.parallel }}{% endif %} \
@@ -35,7 +44,7 @@
   ansible.builtin.shell: >
     ulimit -n {{ percona_server_tools_ulimit }} && \
     xtrabackup \
-      --apply-log \
+      --prepare \
       {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
       {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
       {% if percona_server_tools_setup_master_replication.xtrabackup.use_memory is defined %}--use-memory={{ percona_server_tools_setup_master_replication.xtrabackup.use_memory }}{% endif %} \
@@ -64,14 +73,14 @@
 
 - name: setup master replication | stop slave
   community.mysql.mysql_replication:
-    mode: stopslave
+    mode: stopreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-ge-80-stop-slave
 
 - name: setup master replication | reset slave
   community.mysql.mysql_replication:
-    mode: resetslaveall
+    mode: resetreplicaall
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-ge-80-reset-slave
@@ -165,7 +174,7 @@
 
 - name: setup master replication | change master
   community.mysql.mysql_replication:
-    mode: changemaster
+    mode: changeprimary
     master_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
     master_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
     master_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
@@ -177,17 +186,17 @@
 
 - name: setup master replication | start slave
   community.mysql.mysql_replication:
-    mode: startslave
+    mode: startreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
   tags:
     - percona-server-tools-setup-master-replication-ge-80-start-slave
 
 - name: setup master replication | get slave
   community.mysql.mysql_replication:
-    mode: getslave
+    mode: getreplica
   register: _slave2_information
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  failed_when: _slave2_information.Slave_IO_Running != 'Yes' or _slave2_information.Slave_SQL_Running != 'Yes'
+  failed_when: _slave2_information.Replica_IO_Running != 'Yes' or _slave2_information.Replica_SQL_Running != 'Yes'
   tags:
     - percona-server-tools-setup-master-replication-ge-80-get-slave
 
@@ -204,21 +213,21 @@
 
 - name: setup master replication | stop slave
   community.mysql.mysql_replication:
-    mode: stopslave
+    mode: stopreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-ge-80-stop-slave
 
 - name: setup master replication | reset slave
   community.mysql.mysql_replication:
-    mode: resetslaveall
+    mode: resetreplicaall
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-ge-80-reset-slave
 
 - name: setup master replication | change master
   community.mysql.mysql_replication:
-    mode: changemaster
+    mode: changeprimary
     master_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
     master_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
     master_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
@@ -230,16 +239,16 @@
 
 - name: setup master replication | start slave
   community.mysql.mysql_replication:
-    mode: startslave
+    mode: startreplica
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-ge-80-start-slave
 
 - name: setup master replication | get slave
   community.mysql.mysql_replication:
-    mode: getslave
+    mode: getreplica
   register: _slave1_information
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  failed_when: _slave1_information.Slave_IO_Running != 'Yes' or _slave1_information.Slave_SQL_Running != 'Yes'
+  failed_when: _slave1_information.Replica_IO_Running != 'Yes' or _slave1_information.Replica_SQL_Running != 'Yes'
   tags:
     - percona-server-tools-setup-master-replication-ge-80-get-slave
