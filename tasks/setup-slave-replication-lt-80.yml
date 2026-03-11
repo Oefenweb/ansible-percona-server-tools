@@ -9,7 +9,7 @@
 
 - name: setup slave replication | remove (backup) directory
   ansible.builtin.file:
-    path: "{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}"
+    path: "{{ percona_server_tools_setup_slave_replication.xtrabackup.backup_dir }}"
     state: absent
   when: inventory_hostname == percona_server_tools_setup_slave_replication.inventory.master
   tags:
@@ -20,11 +20,11 @@
     ulimit -n {{ percona_server_tools_ulimit }} && \
     innobackupex \
       --no-timestamp \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %}--user={{ percona_server_tools_setup_slave_replication.innobackupex.user }}{% endif %} \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}'{% endif %} \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.parallel is defined and percona_server_tools_setup_slave_replication.innobackupex.parallel > 1 %}--parallel={{ percona_server_tools_setup_slave_replication.innobackupex.parallel }}{% endif %} \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.rsync is defined and percona_server_tools_setup_slave_replication.innobackupex.rsync %}--rsync{% endif %} \
-      {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_slave_replication.xtrabackup.user }}{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.xtrabackup.password }}'{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.parallel is defined and percona_server_tools_setup_slave_replication.xtrabackup.parallel > 1 %}--parallel={{ percona_server_tools_setup_slave_replication.xtrabackup.parallel }}{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.rsync is defined and percona_server_tools_setup_slave_replication.xtrabackup.rsync %}--rsync{% endif %} \
+      {{ percona_server_tools_setup_slave_replication.xtrabackup.backup_dir }}
   register: _make_a_backup
   failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
   changed_when: true
@@ -37,10 +37,10 @@
     ulimit -n {{ percona_server_tools_ulimit }} && \
     innobackupex \
       --apply-log \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.user is defined %}--user={{ percona_server_tools_setup_slave_replication.innobackupex.user }}{% endif %} \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.innobackupex.password }}'{% endif %} \
-      {% if percona_server_tools_setup_slave_replication.innobackupex.use_memory is defined %}--use-memory={{ percona_server_tools_setup_slave_replication.innobackupex.use_memory }}{% endif %} \
-      {{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_slave_replication.xtrabackup.user }}{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_slave_replication.xtrabackup.password }}'{% endif %} \
+      {% if percona_server_tools_setup_slave_replication.xtrabackup.use_memory is defined %}--use-memory={{ percona_server_tools_setup_slave_replication.xtrabackup.use_memory }}{% endif %} \
+      {{ percona_server_tools_setup_slave_replication.xtrabackup.backup_dir }}
   register: _prepare_a_backup
   failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
   changed_when: true
@@ -98,7 +98,7 @@
     rsync
     -ai --delete
     -e 'ssh{% if percona_server_tools_setup_slave_replication.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication.ssh_opts | join(" ") }}{% endif %}'
-    {{ percona_server_tools_setup_slave_replication.master.host }}:{{ percona_server_tools_setup_slave_replication.innobackupex.backup_dir }}/
+    {{ percona_server_tools_setup_slave_replication.master.host }}:{{ percona_server_tools_setup_slave_replication.xtrabackup.backup_dir }}/
     {{ percona_server_tools_datadir.rstrip('/') }}
   register: _pull_backup
   changed_when: _pull_backup.stdout_lines | length > 0
