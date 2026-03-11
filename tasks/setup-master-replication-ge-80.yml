@@ -19,6 +19,7 @@
   ansible.builtin.file:
     path: "{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}"
     state: directory
+    mode: '0755'
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
   tags:
     - percona-server-tools-setup-master-replication-ge-80-create-backup-directory
