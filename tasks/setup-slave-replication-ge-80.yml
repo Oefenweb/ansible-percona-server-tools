@@ -1,0 +1,7 @@
+# tasks file
+---
+- name: setup slave replication | check | version
+  ansible.builtin.fail:
+    msg: "Not implemented exception"
+  tags:
+    - percona-server-tools-setup-slave-replication-ge-80-check-version
