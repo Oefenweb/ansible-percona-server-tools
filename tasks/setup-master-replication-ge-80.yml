@@ -7,313 +7,287 @@
   tags:
     - percona-server-tools-setup-master-replication-ge-80-check-service
 
-- name: setup master replication | remove (backup) directory
-  ansible.builtin.file:
-    path: "{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}"
-    state: absent
+- name: setup master replication | part 1
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-remove-backup-directory
+  block:
+    - name: setup master replication | remove (backup) directory
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}"
+        state: absent
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-remove-backup-directory
 
-- name: setup master replication | create (backup) directory
-  ansible.builtin.file:
-    path: "{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}"
-    state: directory
-    mode: '0755'
+    - name: setup master replication | create (backup) directory
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}"
+        state: directory
+        mode: '0755'
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-create-backup-directory
+
+    - name: setup master replication | make a backup
+      ansible.builtin.shell: >
+        ulimit -n {{ percona_server_tools_ulimit }} && \
+        xtrabackup \
+          --backup \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.parallel is defined and percona_server_tools_setup_master_replication.xtrabackup.parallel > 1 %}--parallel={{ percona_server_tools_setup_master_replication.xtrabackup.parallel }}{% endif %} \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.rsync is defined and percona_server_tools_setup_master_replication.xtrabackup.rsync %}--rsync{% endif %} \
+          --target-dir={{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}
+      register: _make_a_backup
+      failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+      changed_when: true
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-make-a-backup
+
+    - name: setup master replication | prepare the backup
+      ansible.builtin.shell: >
+        ulimit -n {{ percona_server_tools_ulimit }} && \
+        xtrabackup \
+          --prepare \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.use_memory is defined %}--use-memory={{ percona_server_tools_setup_master_replication.xtrabackup.use_memory }}{% endif %} \
+          --target-dir={{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}
+      register: _prepare_a_backup
+      failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+      changed_when: true
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-prepare-the-backup
+
+- name: setup master replication | part 2
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
+  block:
+    - name: setup master replication | get datadir
+      community.mysql.mysql_variables:
+        variable: datadir
+      register: _datadir_value
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-get-datadir
+
+    - name: setup master replication | set datadir
+      ansible.builtin.set_fact:
+        percona_server_tools_datadir: "{{ _datadir_value.msg }}"
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-set-datadir
+
+    - name: setup master replication | stop slave
+      community.mysql.mysql_replication:
+        mode: stopreplica
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-stop-slave
+
+    - name: setup master replication | reset slave
+      community.mysql.mysql_replication:
+        mode: resetreplicaall
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-reset-slave
+
+    - name: setup master replication | stop service
+      ansible.builtin.service:
+        name: mysql
+        state: stopped
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-stop-service
+
+    - name: setup master replication | purge datadir
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+        state: absent
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-purge-datadir
+
+    - name: setup master replication | create datadir
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+        state: directory
+        mode: '0755'
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-purge-datadir
+
+    - name: setup master replication | pull backup  # noqa command-instead-of-module
+      ansible.builtin.command: >
+        rsync
+        -ai --delete
+        -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}'
+        {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}/
+        {{ percona_server_tools_datadir.rstrip('/') }}
+      register: _pull_backup
+      changed_when: _pull_backup.stdout_lines | length > 0
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-pull-backup
+
+    - name: setup master replication | set permissions
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+        owner: "{{ percona_server_tools_mysqld_user }}"
+        group: "{{ percona_server_tools_mysqld_user }}"
+        recurse: true
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-set-permissions
+
+    - name: setup master replication | stat debian.cnf
+      ansible.builtin.stat:
+        path: "{{ percona_server_tools_debian_cnf_file }}"
+      register: _stat_debian_cnf
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-stat-debian.cnf
+
+    - name: setup master replication | pull debian.cnf  # noqa command-instead-of-module
+      ansible.builtin.command: >
+        rsync
+        -ai --checksum --delete
+        -e ssh
+        {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_debian_cnf_file }}
+        {{ percona_server_tools_debian_cnf_file }}
+      register: _pull_debian_cnf
+      changed_when: _pull_debian_cnf.stdout_lines | length > 0
+      when:
+        - _stat_debian_cnf.stat.exists
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-pull-debian.cnf
+
+    - name: setup master replication | start service
+      ansible.builtin.service:
+        name: mysql
+        state: started
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-start-service
+
+    - name: setup master replication | set offline_mode to 1 (online)
+      community.mysql.mysql_variables:
+        variable: offline_mode
+        value: '0'
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-set-offline_mode
+
+    - name: setup master replication | get master
+      ansible.builtin.command: >
+        cat {{ percona_server_tools_datadir.rstrip('/') }}/xtrabackup_binlog_info
+      register: _master1_log_information
+      changed_when: false
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-get-master
+
+    # See https://forums.percona.com/t/mysql-8-0-35-to-mysql-8-0-36-cant-restore-backup-on-slave-replication/29427
+    - name: setup master replication | reset slave
+      community.mysql.mysql_replication:
+        mode: resetreplicaall
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-reset-slave
+
+    - name: setup master replication | change master
+      community.mysql.mysql_replication:
+        mode: changeprimary
+        primary_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
+        primary_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
+        primary_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
+        primary_log_file: "{{ _master1_log_information.stdout.split()[0] }}"
+        primary_log_pos: "{{ _master1_log_information.stdout.split()[1] }}"
+      when: _mysql_version.stdout is version('8.0.23', '<')
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-change-master
+
+    # TODO: Make use of community.mysql.mysql_replication: {mode: changereplication}
+    - name: setup master replication | change master
+      ansible.builtin.command: >
+        mysql
+        -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='{{ percona_server_tools_setup_master_replication.master1.host }}', SOURCE_USER='{{ percona_server_tools_setup_master_replication.master1.user }}', SOURCE_PASSWORD='{{ percona_server_tools_setup_master_replication.master1.password }}', SOURCE_LOG_FILE='{{ _master1_log_information.stdout.split()[0] }}', SOURCE_LOG_POS={{ _master1_log_information.stdout.split()[1] }};"
+        --skip-column-names
+      register: _slave2_change_master
+      #  community.mysql.mysql_replication:
+      #    mode: changereplication
+      #    primary_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
+      #    primary_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
+      #    primary_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
+      #    primary_log_file: "{{ _master1_log_information.stdout.split()[0] }}"
+      #    primary_log_pos: "{{ _master1_log_information.stdout.split()[1] }}"
+      when: _mysql_version.stdout is version('8.0.23', '>=')
+      changed_when: true
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-start-service
+
+    - name: setup master replication | start slave
+      community.mysql.mysql_replication:
+        mode: startreplica
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-start-slave
+
+    - name: setup master replication | get slave
+      community.mysql.mysql_replication:
+        mode: getreplica
+      register: _slave2_information
+      failed_when: _slave2_information.Replica_IO_Running != 'Yes' or _slave2_information.Replica_SQL_Running != 'Yes'
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-get-slave
+
+- name: setup master replication | part 3
   when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-create-backup-directory
+  block:
+    - name: setup master replication | get master
+      community.mysql.mysql_replication:
+        mode: getprimary
+        login_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
+        login_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
+        login_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+      register: _master2_log_information
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-get-master
 
-- name: setup master replication | make a backup
-  ansible.builtin.shell: >
-    ulimit -n {{ percona_server_tools_ulimit }} && \
-    xtrabackup \
-      --backup \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.parallel is defined and percona_server_tools_setup_master_replication.xtrabackup.parallel > 1 %}--parallel={{ percona_server_tools_setup_master_replication.xtrabackup.parallel }}{% endif %} \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.rsync is defined and percona_server_tools_setup_master_replication.xtrabackup.rsync %}--rsync{% endif %} \
-      --target-dir={{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}
-  register: _make_a_backup
-  failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
-  changed_when: true
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-make-a-backup
+    - name: setup master replication | stop slave
+      community.mysql.mysql_replication:
+        mode: stopreplica
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-stop-slave
 
-- name: setup master replication | prepare the backup
-  ansible.builtin.shell: >
-    ulimit -n {{ percona_server_tools_ulimit }} && \
-    xtrabackup \
-      --prepare \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
-      {% if percona_server_tools_setup_master_replication.xtrabackup.use_memory is defined %}--use-memory={{ percona_server_tools_setup_master_replication.xtrabackup.use_memory }}{% endif %} \
-      --target-dir={{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}
-  register: _prepare_a_backup
-  failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
-  changed_when: true
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-prepare-the-backup
+    - name: setup master replication | reset slave
+      community.mysql.mysql_replication:
+        mode: resetreplicaall
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-reset-slave
 
-- name: setup master replication | get datadir
-  community.mysql.mysql_variables:
-    variable: datadir
-  register: _datadir_value
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-get-datadir
+    - name: setup master replication | change master
+      community.mysql.mysql_replication:
+        mode: changeprimary
+        primary_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
+        primary_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
+        primary_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+        primary_log_file: "{{ _master2_log_information.File }}"
+        primary_log_pos: "{{ _master2_log_information.Position }}"
+      when: _mysql_version.stdout is version('8.0.23', '<')
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-change-master
 
-- name: setup master replication | set datadir
-  ansible.builtin.set_fact:
-    percona_server_tools_datadir: "{{ _datadir_value.msg }}"
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-set-datadir
+    # TODO: Make use of community.mysql.mysql_replication: {mode: changereplication}
+    - name: setup master replication | change master
+      ansible.builtin.command: >
+        mysql
+        -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='{{ percona_server_tools_setup_master_replication.master2.host }}', SOURCE_USER='{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}', SOURCE_PASSWORD='{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}', SOURCE_LOG_FILE='{{ _master2_log_information.File }}', SOURCE_LOG_POS={{ _master2_log_information.Position }};"
+        --skip-column-names
+      register: _slave1_change_master
+      #  community.mysql.mysql_replication:
+      #    mode: changereplication
+      #    primary_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
+      #    primary_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
+      #    primary_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
+      #    primary_log_file: "{{ _master2_log_information.File }}"
+      #    primary_log_pos: "{{ _master2_log_information.Position }}"
+      when: _mysql_version.stdout is version('8.0.23', '>=')
+      changed_when: true
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-change-master
 
-- name: setup master replication | stop slave
-  community.mysql.mysql_replication:
-    mode: stopreplica
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-stop-slave
+    - name: setup master replication | start slave
+      community.mysql.mysql_replication:
+        mode: startreplica
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-start-slave
 
-- name: setup master replication | reset slave
-  community.mysql.mysql_replication:
-    mode: resetreplicaall
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-reset-slave
-
-- name: setup master replication | stop service
-  ansible.builtin.service:
-    name: mysql
-    state: stopped
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-stop-service
-
-- name: setup master replication | purge datadir
-  ansible.builtin.file:
-    path: "{{ percona_server_tools_datadir.rstrip('/') }}"
-    state: absent
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-purge-datadir
-
-- name: setup master replication | create datadir
-  ansible.builtin.file:
-    path: "{{ percona_server_tools_datadir.rstrip('/') }}"
-    state: directory
-    mode: '0755'
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-purge-datadir
-
-- name: setup master replication | pull backup  # noqa command-instead-of-module
-  ansible.builtin.command: >
-    rsync
-    -ai --delete
-    -e 'ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %}'
-    {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}/
-    {{ percona_server_tools_datadir.rstrip('/') }}
-  register: _pull_backup
-  changed_when: _pull_backup.stdout_lines | length > 0
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-pull-backup
-
-- name: setup master replication | set permissions
-  ansible.builtin.file:
-    path: "{{ percona_server_tools_datadir.rstrip('/') }}"
-    owner: "{{ percona_server_tools_mysqld_user }}"
-    group: "{{ percona_server_tools_mysqld_user }}"
-    recurse: true
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-set-permissions
-
-- name: setup master replication | stat debian.cnf
-  ansible.builtin.stat:
-    path: "{{ percona_server_tools_debian_cnf_file }}"
-  register: _stat_debian_cnf
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-stat-debian.cnf
-
-- name: setup master replication | pull debian.cnf  # noqa command-instead-of-module
-  ansible.builtin.command: >
-    rsync
-    -ai --checksum --delete
-    -e ssh
-    {{ percona_server_tools_setup_master_replication.master1.host }}:{{ percona_server_tools_debian_cnf_file }}
-    {{ percona_server_tools_debian_cnf_file }}
-  register: _pull_debian_cnf
-  changed_when: _pull_debian_cnf.stdout_lines | length > 0
-  when:
-    - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-    - _stat_debian_cnf.stat.exists
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-pull-debian.cnf
-
-- name: setup master replication | start service
-  ansible.builtin.service:
-    name: mysql
-    state: started
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-start-service
-
-- name: setup master replication | set offline_mode to 1 (online)
-  community.mysql.mysql_variables:
-    variable: offline_mode
-    value: '0'
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-set-offline_mode
-
-- name: setup master replication | get master
-  ansible.builtin.command: >
-    cat {{ percona_server_tools_datadir.rstrip('/') }}/xtrabackup_binlog_info
-  register: _master1_log_information
-  changed_when: false
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-get-master
-
-# See https://forums.percona.com/t/mysql-8-0-35-to-mysql-8-0-36-cant-restore-backup-on-slave-replication/29427
-- name: setup master replication | reset slave
-  community.mysql.mysql_replication:
-    mode: resetreplicaall
-  when:
-    - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-reset-slave
-
-- name: setup master replication | change master
-  community.mysql.mysql_replication:
-    mode: changeprimary
-    primary_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
-    primary_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
-    primary_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
-    primary_log_file: "{{ _master1_log_information.stdout.split()[0] }}"
-    primary_log_pos: "{{ _master1_log_information.stdout.split()[1] }}"
-  when:
-    - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-    - _mysql_version.stdout is version('8.0.23', '<')
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-change-master
-
-# TODO: Make use of community.mysql.mysql_replication: {mode: changereplication}
-- name: setup master replication | change master
-  ansible.builtin.command: >
-    mysql
-    -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='{{ percona_server_tools_setup_master_replication.master1.host }}', SOURCE_USER='{{ percona_server_tools_setup_master_replication.master1.user }}', SOURCE_PASSWORD='{{ percona_server_tools_setup_master_replication.master1.password }}', SOURCE_LOG_FILE='{{ _master1_log_information.stdout.split()[0] }}', SOURCE_LOG_POS={{ _master1_log_information.stdout.split()[1] }};"
-    --skip-column-names
-  register: _slave2_change_master
-  #  community.mysql.mysql_replication:
-  #    mode: changereplication
-  #    primary_host: "{{ percona_server_tools_setup_master_replication.master1.host }}"
-  #    primary_user: "{{ percona_server_tools_setup_master_replication.master1.user }}"
-  #    primary_password: "{{ percona_server_tools_setup_master_replication.master1.password }}"
-  #    primary_log_file: "{{ _master1_log_information.stdout.split()[0] }}"
-  #    primary_log_pos: "{{ _master1_log_information.stdout.split()[1] }}"
-  when:
-    - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-    - _mysql_version.stdout is version('8.0.23', '>=')
-  changed_when: true
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-start-service
-
-- name: setup master replication | start slave
-  community.mysql.mysql_replication:
-    mode: startreplica
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-start-slave
-
-- name: setup master replication | get slave
-  community.mysql.mysql_replication:
-    mode: getreplica
-  register: _slave2_information
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
-  failed_when: _slave2_information.Replica_IO_Running != 'Yes' or _slave2_information.Replica_SQL_Running != 'Yes'
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-get-slave
-
-- name: setup master replication | get master
-  community.mysql.mysql_replication:
-    mode: getprimary
-    login_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
-    login_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
-    login_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
-  register: _master2_log_information
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-get-master
-
-- name: setup master replication | stop slave
-  community.mysql.mysql_replication:
-    mode: stopreplica
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-stop-slave
-
-- name: setup master replication | reset slave
-  community.mysql.mysql_replication:
-    mode: resetreplicaall
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-reset-slave
-
-- name: setup master replication | change master
-  community.mysql.mysql_replication:
-    mode: changeprimary
-    primary_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
-    primary_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
-    primary_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
-    primary_log_file: "{{ _master2_log_information.File }}"
-    primary_log_pos: "{{ _master2_log_information.Position }}"
-  when:
-    - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-    - _mysql_version.stdout is version('8.0.23', '<')
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-change-master
-
-# TODO: Make use of community.mysql.mysql_replication: {mode: changereplication}
-- name: setup master replication | change master
-  ansible.builtin.command: >
-    mysql
-    -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='{{ percona_server_tools_setup_master_replication.master2.host }}', SOURCE_USER='{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}', SOURCE_PASSWORD='{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}', SOURCE_LOG_FILE='{{ _master2_log_information.File }}', SOURCE_LOG_POS={{ _master2_log_information.Position }};"
-    --skip-column-names
-  register: _slave1_change_master
-  #  community.mysql.mysql_replication:
-  #    mode: changereplication
-  #    primary_host: "{{ percona_server_tools_setup_master_replication.master2.host }}"
-  #    primary_user: "{{ percona_server_tools_setup_master_replication.master2.user | default(percona_server_tools_setup_master_replication.master1.user) }}"
-  #    primary_password: "{{ percona_server_tools_setup_master_replication.master2.password | default(percona_server_tools_setup_master_replication.master1.password) }}"
-  #    primary_log_file: "{{ _master2_log_information.File }}"
-  #    primary_log_pos: "{{ _master2_log_information.Position }}"
-  when:
-    - inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-    - _mysql_version.stdout is version('8.0.23', '>=')
-  changed_when: true
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-change-master
-
-- name: setup master replication | start slave
-  community.mysql.mysql_replication:
-    mode: startreplica
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-start-slave
-
-- name: setup master replication | get slave
-  community.mysql.mysql_replication:
-    mode: getreplica
-  register: _slave1_information
-  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master1
-  failed_when: _slave1_information.Replica_IO_Running != 'Yes' or _slave1_information.Replica_SQL_Running != 'Yes'
-  tags:
-    - percona-server-tools-setup-master-replication-ge-80-get-slave
+    - name: setup master replication | get slave
+      community.mysql.mysql_replication:
+        mode: getreplica
+      register: _slave1_information
+      failed_when: _slave1_information.Replica_IO_Running != 'Yes' or _slave1_information.Replica_SQL_Running != 'Yes'
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80-get-slave
