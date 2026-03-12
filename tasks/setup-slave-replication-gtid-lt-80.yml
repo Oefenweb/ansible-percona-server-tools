@@ -93,6 +93,15 @@
   tags:
     - percona-server-tools-setup-slave-replication-gtid-lt-80-purge-datadir
 
+- name: setup slave replication gtid | create datadir
+  ansible.builtin.file:
+    path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+    state: directory
+    mode: '0755'
+  when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
+  tags:
+    - percona-server-tools-setup-slave-replication-gtid-lt-80-create-datadir
+
 - name: setup slave replication gtid | pull backup  # noqa command-instead-of-module
   ansible.builtin.command: >
     rsync

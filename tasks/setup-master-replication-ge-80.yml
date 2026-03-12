@@ -102,6 +102,15 @@
   tags:
     - percona-server-tools-setup-master-replication-ge-80-purge-datadir
 
+- name: setup master replication | create datadir
+  ansible.builtin.file:
+    path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+    state: directory
+    mode: '0755'
+  when: inventory_hostname == percona_server_tools_setup_master_replication.inventory.master2
+  tags:
+    - percona-server-tools-setup-master-replication-ge-80-purge-datadir
+
 - name: setup master replication | pull backup  # noqa command-instead-of-module
   ansible.builtin.command: >
     rsync
