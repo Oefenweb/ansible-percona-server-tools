@@ -167,11 +167,11 @@
 - name: setup slave replication | change master
   community.mysql.mysql_replication:
     mode: changeprimary
-    master_host: "{{ percona_server_tools_setup_slave_replication.master.host }}"
-    master_user: "{{ percona_server_tools_setup_slave_replication.master.user }}"
-    master_password: "{{ percona_server_tools_setup_slave_replication.master.password }}"
-    master_log_file: "{{ _master_log_information.stdout.split()[0] }}"
-    master_log_pos: "{{ _master_log_information.stdout.split()[1] }}"
+    primary_host: "{{ percona_server_tools_setup_slave_replication.master.host }}"
+    primary_user: "{{ percona_server_tools_setup_slave_replication.master.user }}"
+    primary_password: "{{ percona_server_tools_setup_slave_replication.master.password }}"
+    primary_log_file: "{{ _master_log_information.stdout.split()[0] }}"
+    primary_log_pos: "{{ _master_log_information.stdout.split()[1] }}"
   when: inventory_hostname in percona_server_tools_setup_slave_replication.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-lt-80-change-master

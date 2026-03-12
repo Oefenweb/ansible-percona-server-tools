@@ -193,10 +193,10 @@
 - name: setup slave replication gtid | change master
   community.mysql.mysql_replication:
     mode: changeprimary
-    master_host: "{{ percona_server_tools_setup_slave_replication_gtid.master.host }}"
-    master_user: "{{ percona_server_tools_setup_slave_replication_gtid.master.user }}"
-    master_password: "{{ percona_server_tools_setup_slave_replication_gtid.master.password }}"
-    master_auto_position: true
+    primary_host: "{{ percona_server_tools_setup_slave_replication_gtid.master.host }}"
+    primary_user: "{{ percona_server_tools_setup_slave_replication_gtid.master.user }}"
+    primary_password: "{{ percona_server_tools_setup_slave_replication_gtid.master.password }}"
+    primary_auto_position: true
   when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
   tags:
     - percona-server-tools-setup-slave-replication-gtid-lt-80-change-master
