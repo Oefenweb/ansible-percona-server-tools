@@ -72,6 +72,7 @@ Sets up master replication on one master from a healthy master. Assumes that the
 
 * Recommends using the `any_errors_fatal` [option](http://docs.ansible.com/ansible/playbooks_delegation.html#interrupt-execution-on-any-error) to interrupt execution on any error
 * Requires `master(1|2).user` to have both `GRANT REPLICATION SLAVE` and `REPLICATION CLIENT` grants
+* Requires `xtrabackup.user` to have the `GRANT BACKUP_ADMIN` grant (for version `>= 8`)
 
 - - -
 
@@ -153,7 +154,31 @@ None
         backup_dir: /tmp/xtrabackup
 
       master:
-        host: "{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}"
+        host: "{{ hostvars['db-01.example.com']['ansible_eth1']['ipv4']['address'] }}"
+        user: replicator
+        password: 'Z$8>YM"KUVRv6sW#=O-A'
+```
+
+##### Setup slave replication (GTID)
+
+```yaml
+---
+- hosts: all
+  roles:
+    - oefenweb.percona-server-tools
+  vars:
+    percona_server_tools_setup_slave_replication_gtid:
+      run: true
+      inventory:
+        master: db-01.example.com
+        slaves:
+          - db-02.example.com
+
+      xtrabackup:
+        backup_dir: /tmp/xtrabackup
+
+      master:
+        host: "{{ hostvars['db-01.example.com']['ansible_eth1']['ipv4']['address'] }}"
         user: replicator
         password: 'Z$8>YM"KUVRv6sW#=O-A'
 ```
