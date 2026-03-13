@@ -122,7 +122,7 @@
       tags:
         - percona-server-tools-setup-master-replication-ge-80-pull-backup
 
-    - name: setup master replication | part 2 | pull backup (tar)  # noqa command-instead-of-module
+    - name: setup master replication | part 2 | pull backup (tar)  # noqa risky-shell-pipe
       ansible.builtin.shell: >
         ssh{% if percona_server_tools_setup_master_replication.ssh_opts is defined %} {{ percona_server_tools_setup_master_replication.ssh_opts | join(" ") }}{% endif %} {{ percona_server_tools_setup_master_replication.master1.host }} \
         'tar -cf - -C {{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }} . {{ percona_server_tools_setup_master_replication.transport.pre | default('') }}' \

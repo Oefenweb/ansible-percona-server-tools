@@ -114,7 +114,7 @@
       tags:
         - percona-server-tools-setup-slave-replication-gtid-lt-80-pull-backup
 
-    - name: setup slave replication gtid | part 2 | pull backup (tar)  # noqa command-instead-of-module
+    - name: setup slave replication gtid | part 2 | pull backup (tar)  # noqa risky-shell-pipe
       ansible.builtin.shell: >
         ssh{% if percona_server_tools_setup_slave_replication_gtid.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication_gtid.ssh_opts | join(" ") }}{% endif %} {{ percona_server_tools_setup_slave_replication_gtid.master1.host }} \
         'tar -cf - -C {{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }} . {{ percona_server_tools_setup_slave_replication_gtid.transport.pre | default('') }}' \
