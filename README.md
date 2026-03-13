@@ -34,7 +34,7 @@ Removes the current InnoDB log files in a safe way.
 
 ##### Setup slave replication (using `xtrabackup`)
 
-Sets up slave replication on one or more slaves from a healthy master. Assumes that the slaves are able to pull backups using `rsync` over `ssh`, so ssh (keys) need to be set up.
+Sets up slave replication on one or more slaves from a healthy master. Assumes that the slaves are able to pull backups using `rsync` (or `tar`) over `ssh`, so ssh (keys) need to be set up.
 
 **Notes**
 
@@ -57,6 +57,11 @@ Sets up slave replication on one or more slaves from a healthy master. Assumes t
 * `percona_server_tools_setup_slave_replication.xtrabackup.backup_dir`: [required]: Specifies the backup directory
 * `percona_server_tools_setup_slave_replication.xtrabackup.use_memory`: [optional]: Specifies the amount of memory in bytes for `xtrabackup` to use for crash recovery while preparing a backup
 
+* `percona_server_tools_setup_slave_replication.transport`: [optional]: Transport section
+* `percona_server_tools_setup_slave_replication.transport.method`: [default `rsync`]: Transport method (e.g. `tar`)
+* `percona_server_tools_setup_slave_replication.transport.pre`: [default `''`]: Pre transport command (e.g. `| zstd -T0`, `| lz4`), only relevant for `tar` transport method
+* `percona_server_tools_setup_slave_replication.transport.post`: [default `''`]: Post transport command (e.g. `| unzstd`, `| lz4 -dc`), only relevant for `tar` transport method
+
 * `percona_server_tools_setup_slave_replication.master`: [required]: Master section
 * `percona_server_tools_setup_slave_replication.master.host`: [required]: Specifies the `MASTER_HOST`, needed to set up the replication, but also the pull backups from the master (`rsync` over `ssh`) (e.g. `{{ hostvars['db-01.example.com']['ansible_eth1']['ipv4']['address'] }}`)
 * `percona_server_tools_setup_slave_replication.master.user`: [required]: Specifies the `MASTER_USER` (e.g. `replicator`)
@@ -66,7 +71,7 @@ Sets up slave replication on one or more slaves from a healthy master. Assumes t
 
 ##### Setup master replication (using `xtrabackup`)
 
-Sets up master replication on one master from a healthy master. Assumes that the master is able to pull backups using `rsync` over `ssh`, so ssh (keys) need to be set up. Also assumes that there are **no writes on the (secondary) master** during the run of this playbook.
+Sets up master replication on one master from a healthy master. Assumes that the master is able to pull backups using `rsync` (or `tar`) over `ssh`, so ssh (keys) need to be set up. Also assumes that there are **no writes on the (secondary) master** during the run of this playbook.
 
 **Notes**
 
@@ -88,6 +93,11 @@ Sets up master replication on one master from a healthy master. Assumes that the
 * `percona_server_tools_setup_master_replication.xtrabackup.rsync`: [optional]: Use the `rsync` utility to optimize local file transfers. When this option is specified, `innobackupex` uses `rsync` to copy all non-InnoDB files instead of spawning a separate `cp` for each file, which can be much faster for servers with a large number of databases or tables
 * `percona_server_tools_setup_master_replication.xtrabackup.backup_dir`: [required]: Specifies the backup directory
 * `percona_server_tools_setup_master_replication.xtrabackup.use_memory`: [optional]: Specifies the amount of memory in bytes for `xtrabackup` to use for crash recovery while preparing a backup
+
+* `percona_server_tools_setup_master_replication.transport`: [optional]: Transport section
+* `percona_server_tools_setup_master_replication.transport.method`: [default `rsync`]: Transport method (e.g. `tar`)
+* `percona_server_tools_setup_master_replication.transport.pre`: [default `''`]: Pre transport command (e.g. `| zstd -T0`, `| lz4`), only relevant for `tar` transport method
+* `percona_server_tools_setup_master_replication.transport.post`: [default `''`]: Post transport command (e.g. `| unzstd`, `| lz4 -dc`), only relevant for `tar` transport method
 
 * `percona_server_tools_setup_master_replication.master1.host`: [required]: Specifies the `MASTER_HOST` (on `master2`), needed to set up the replication, but also the pull backups from the master (`rsync` over `ssh`) (e.g. `{{ hostvars[percona_server_tools_setup_slave_replication_master]['ansible_eth1']['ipv4']['address'] }}`)
 * `percona_server_tools_setup_master_replication.master1.user`: [required]: Specifies the `MASTER_USER` (e.g. `replicator`)
@@ -153,6 +163,9 @@ None
       xtrabackup:
         backup_dir: /tmp/xtrabackup
 
+      transport:
+        method: rsync
+
       master:
         host: "{{ hostvars['db-01.example.com']['ansible_eth1']['ipv4']['address'] }}"
         user: replicator
@@ -176,6 +189,11 @@ None
 
       xtrabackup:
         backup_dir: /tmp/xtrabackup
+
+      transport:
+        method: tar
+        pre: '| lz4'
+        post: '| lz4 -dc'
 
       master:
         host: "{{ hostvars['db-01.example.com']['ansible_eth1']['ipv4']['address'] }}"

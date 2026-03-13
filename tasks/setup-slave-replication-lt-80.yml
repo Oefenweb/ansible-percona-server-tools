@@ -98,7 +98,7 @@
       tags:
         - percona-server-tools-setup-slave-replication-lt-80-create-datadir
 
-    - name: setup slave replication | part 2 | pull backup  # noqa command-instead-of-module
+    - name: setup slave replication | part 2 | pull backup (rsync)  # noqa command-instead-of-module
       ansible.builtin.command: >
         rsync
         -ai --delete
@@ -107,6 +107,24 @@
         {{ percona_server_tools_datadir.rstrip('/') }}
       register: _pull_backup
       changed_when: _pull_backup.stdout_lines | length > 0
+      when: >
+        percona_server_tools_setup_slave_replication.transport is undefined or
+        percona_server_tools_setup_slave_replication.transport.method is undefined or
+        percona_server_tools_setup_slave_replication.transport.method == 'rsync'
+      tags:
+        - percona-server-tools-setup-slave-replication-lt-80-pull-backup
+
+    - name: setup slave replication | part 2 | pull backup (tar)  # noqa command-instead-of-module
+      ansible.builtin.shell: >
+        ssh{% if percona_server_tools_setup_slave_replication.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication.ssh_opts | join(" ") }}{% endif %} {{ percona_server_tools_setup_slave_replication.master1.host }} \
+        'tar -cf - -C {{ percona_server_tools_setup_slave_replication.xtrabackup.backup_dir }} . {{ percona_server_tools_setup_slave_replication.transport.pre | default('') }}' \
+        {{ percona_server_tools_setup_slave_replication.transport.post | default('') }} | tar -xf - -C {{ percona_server_tools_datadir.rstrip('/') }}
+      register: _pull_backup
+      changed_when: true
+      when:
+        - percona_server_tools_setup_slave_replication.transport is defined
+        - percona_server_tools_setup_slave_replication.transport.method is defined
+        - percona_server_tools_setup_slave_replication.transport.method == 'tar'
       tags:
         - percona-server-tools-setup-slave-replication-lt-80-pull-backup
 
