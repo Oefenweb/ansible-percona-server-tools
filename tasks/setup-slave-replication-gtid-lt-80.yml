@@ -10,6 +10,12 @@
 - name: setup slave replication gtid | part 1
   when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
   block:
+    - name: setup slave replication gtid | part 1 | reset slave
+      community.mysql.mysql_replication:
+        mode: resetreplicaall
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-reset-slave
+
     - name: setup slave replication gtid | part 1 | remove (backup) directory
       ansible.builtin.file:
         path: "{{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }}"
