@@ -221,6 +221,6 @@
       community.mysql.mysql_replication:
         mode: getreplica
       register: _slave_information
-      failed_when: _slave_information.Replica_IO_Running != 'Yes' or _slave_information.Replica_SQL_Running != 'Yes'
+      failed_when: _slave_information.Slave_IO_Running != 'Yes' or _slave_information.Slave_SQL_Running != 'Yes'
       tags:
         - percona-server-tools-setup-slave-replication-gtid-lt-80-get-slave

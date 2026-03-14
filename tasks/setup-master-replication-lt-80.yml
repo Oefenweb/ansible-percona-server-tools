@@ -200,7 +200,7 @@
       community.mysql.mysql_replication:
         mode: getreplica
       register: _slave2_information
-      failed_when: _slave2_information.Replica_IO_Running != 'Yes' or _slave2_information.Replica_SQL_Running != 'Yes'
+      failed_when: _slave2_information.Slave_IO_Running != 'Yes' or _slave2_information.Slave_SQL_Running != 'Yes'
       tags:
         - percona-server-tools-setup-master-replication-lt-80-get-slave
 
@@ -250,6 +250,6 @@
       community.mysql.mysql_replication:
         mode: getreplica
       register: _slave1_information
-      failed_when: _slave1_information.Replica_IO_Running != 'Yes' or _slave1_information.Replica_SQL_Running != 'Yes'
+      failed_when: _slave1_information.Slave_IO_Running != 'Yes' or _slave1_information.Slave_SQL_Running != 'Yes'
       tags:
         - percona-server-tools-setup-master-replication-lt-80-get-slave
