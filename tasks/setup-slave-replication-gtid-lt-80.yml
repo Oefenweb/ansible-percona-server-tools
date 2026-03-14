@@ -1,0 +1,229 @@
+# tasks file
+---
+- name: setup slave replication gtid | check service
+  ansible.builtin.service:
+    name: mysql
+    state: started
+  tags:
+    - percona-server-tools-setup-slave-replication-gtid-lt-80-check-service
+
+- name: setup slave replication gtid | part 1
+  when: inventory_hostname == percona_server_tools_setup_slave_replication_gtid.inventory.master
+  block:
+    - name: setup slave replication gtid | part 1 | reset slave
+      community.mysql.mysql_replication:
+        mode: resetreplicaall
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-reset-slave
+
+    - name: setup slave replication gtid | part 1 | remove (backup) directory
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }}"
+        state: absent
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-remove-backup-directory
+
+    - name: setup slave replication gtid | part 1 | make a backup
+      ansible.builtin.shell: >
+        ulimit -n {{ percona_server_tools_ulimit }} && \
+        innobackupex \
+          --no-timestamp \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.user }}{% endif %} \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.password }}'{% endif %} \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.parallel is defined and percona_server_tools_setup_slave_replication_gtid.xtrabackup.parallel > 1 %}--parallel={{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.parallel }}{% endif %} \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.rsync is defined and percona_server_tools_setup_slave_replication_gtid.xtrabackup.rsync %}--rsync{% endif %} \
+          {{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }}
+      register: _make_a_backup
+      failed_when: "_make_a_backup.rc != 0 or _make_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+      changed_when: true
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-make-a-backup
+
+    - name: setup slave replication gtid | part 1 | prepare the backup
+      ansible.builtin.shell: >
+        ulimit -n {{ percona_server_tools_ulimit }} && \
+        innobackupex \
+          --apply-log \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.user }}{% endif %} \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.password }}'{% endif %} \
+          {% if percona_server_tools_setup_slave_replication_gtid.xtrabackup.use_memory is defined %}--use-memory={{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.use_memory }}{% endif %} \
+          {{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }}
+      register: _prepare_a_backup
+      failed_when: "_prepare_a_backup.rc != 0 or _prepare_a_backup.stderr.split('\n')[-1].find('completed OK') == -1"
+      changed_when: true
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-prepare-the-backup
+
+- name: setup slave replication gtid | part 2
+  when: inventory_hostname in percona_server_tools_setup_slave_replication_gtid.inventory.slaves
+  block:
+    - name: setup slave replication gtid | part 2 | get datadir
+      community.mysql.mysql_variables:
+        variable: datadir
+      register: _datadir_value
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-get-datadir
+
+    - name: setup slave replication gtid | part 2 | set datadir
+      ansible.builtin.set_fact:
+        percona_server_tools_datadir: "{{ _datadir_value.msg }}"
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-set-datadir
+
+    - name: setup slave replication gtid | part 2 | stop slave
+      community.mysql.mysql_replication:
+        mode: stopreplica
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-stop-slave
+
+    - name: setup slave replication gtid | part 2 | reset slave
+      community.mysql.mysql_replication:
+        mode: resetreplicaall
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-reset-slave
+
+    - name: setup slave replication gtid | part 2 | stop service
+      ansible.builtin.service:
+        name: mysql
+        state: stopped
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-stop-service
+
+    - name: setup slave replication gtid | part 2 | purge datadir
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+        state: absent
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-purge-datadir
+
+    - name: setup slave replication gtid | part 2 | create datadir
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+        state: directory
+        mode: '0755'
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-create-datadir
+
+    - name: setup slave replication gtid | part 2 | pull backup (rsync)  # noqa command-instead-of-module
+      ansible.builtin.command: >
+        rsync
+        -ai --delete
+        -e 'ssh{% if percona_server_tools_setup_slave_replication_gtid.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication_gtid.ssh_opts | join(" ") }}{% endif %}'
+        {{ percona_server_tools_setup_slave_replication_gtid.master.host }}:{{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }}/
+        {{ percona_server_tools_datadir.rstrip('/') }}
+      register: _pull_backup
+      changed_when: _pull_backup.stdout_lines | length > 0
+      when: >
+        percona_server_tools_setup_slave_replication_gtid.transport is undefined or
+        percona_server_tools_setup_slave_replication_gtid.transport.method is undefined or
+        percona_server_tools_setup_slave_replication_gtid.transport.method == 'rsync'
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-pull-backup
+
+    - name: setup slave replication gtid | part 2 | pull backup (tar)  # noqa risky-shell-pipe
+      ansible.builtin.shell: >
+        ssh{% if percona_server_tools_setup_slave_replication_gtid.ssh_opts is defined %} {{ percona_server_tools_setup_slave_replication_gtid.ssh_opts | join(" ") }}{% endif %} {{ percona_server_tools_setup_slave_replication_gtid.master1.host }} \
+        'tar -cf - -C {{ percona_server_tools_setup_slave_replication_gtid.xtrabackup.backup_dir }} . {{ percona_server_tools_setup_slave_replication_gtid.transport.pre | default('') }}' \
+        {{ percona_server_tools_setup_slave_replication_gtid.transport.post | default('') }} | tar -xf - -C {{ percona_server_tools_datadir.rstrip('/') }}
+      register: _pull_backup
+      changed_when: true
+      when:
+        - percona_server_tools_setup_slave_replication_gtid.transport is defined
+        - percona_server_tools_setup_slave_replication_gtid.transport.method is defined
+        - percona_server_tools_setup_slave_replication_gtid.transport.method == 'tar'
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-pull-backup
+
+    - name: setup slave replication gtid | part 2 | set permissions
+      ansible.builtin.file:
+        path: "{{ percona_server_tools_datadir.rstrip('/') }}"
+        owner: "{{ percona_server_tools_mysqld_user }}"
+        group: "{{ percona_server_tools_mysqld_user }}"
+        recurse: true
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-set-permissions
+
+    - name: setup slave replication gtid | part 2 | stat debian.cnf
+      ansible.builtin.stat:
+        path: "{{ percona_server_tools_debian_cnf_file }}"
+      register: _stat_debian_cnf
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-stat-debian.cnf
+
+    - name: setup slave replication gtid | part 2 | pull debian.cnf  # noqa command-instead-of-module
+      ansible.builtin.command: >
+        rsync
+        -ai --checksum --delete
+        -e ssh
+        {{ percona_server_tools_setup_slave_replication_gtid.master.host }}:{{ percona_server_tools_debian_cnf_file }}
+        {{ percona_server_tools_debian_cnf_file }}
+      register: _pull_debian_cnf
+      changed_when: _pull_debian_cnf.stdout_lines | length > 0
+      when: _stat_debian_cnf.stat.exists
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-pull-debian.cnf
+
+    - name: setup slave replication gtid | part 2 | start service
+      ansible.builtin.service:
+        name: mysql
+        state: started
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-start-service
+
+    - name: setup slave replication gtid | part 2 | set offline_mode to 1 (online)
+      community.mysql.mysql_variables:
+        variable: offline_mode
+        value: '0'
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-set-offline_mode
+
+    - name: setup slave replication gtid | part 2 | get master
+      ansible.builtin.command: >
+        cat {{ percona_server_tools_datadir.rstrip('/') }}/xtrabackup_binlog_info
+      register: _master_log_information
+      changed_when: false
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-get-master
+
+    - name: setup slave replication gtid | part 2.1 | reset master
+      when: _master_log_information.stdout.split() | length > 2
+      block:
+        - name: setup slave replication gtid | part 2.1 | reset master
+          community.mysql.mysql_replication:
+            mode: resetprimary
+          tags:
+            - percona-server-tools-setup-slave-replication-gtid-lt-80-reset-master
+
+        - name: setup slave replication gtid | part 2.1 | set gtid_purged
+          ansible.builtin.command: >
+            mysql
+            -e "SET GLOBAL gtid_purged='{{ _master_log_information.stdout.split()[2] }}';"
+            --skip-column-names
+          changed_when: true
+          register: _set_gtid_purged
+          tags:
+            - percona-server-tools-setup-slave-replication-gtid-lt-80-set-gtid-purged
+
+    - name: setup slave replication gtid | part 2 | change master
+      community.mysql.mysql_replication:
+        mode: changeprimary
+        primary_host: "{{ percona_server_tools_setup_slave_replication_gtid.master.host }}"
+        primary_user: "{{ percona_server_tools_setup_slave_replication_gtid.master.user }}"
+        primary_password: "{{ percona_server_tools_setup_slave_replication_gtid.master.password }}"
+        primary_auto_position: true
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-change-master
+
+    - name: setup slave replication gtid | part 2 | start slave
+      community.mysql.mysql_replication:
+        mode: startreplica
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-start-slave
+
+    - name: setup slave replication gtid | part 2 | get slave
+      community.mysql.mysql_replication:
+        mode: getreplica
+      register: _slave_information
+      failed_when: _slave_information.Slave_IO_Running != 'Yes' or _slave_information.Slave_SQL_Running != 'Yes'
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80-get-slave

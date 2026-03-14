@@ -11,29 +11,28 @@
     - percona-server-tools
     - percona-server-tools-get-mysql-version
 
-- name: reset root password < 5.7
-  ansible.builtin.import_tasks: reset-root-password-lt-57.yml
+- name: reset root password
   when:
     - percona_server_tools_reset_root_password.run | default(false)
-    - _mysql_version.stdout is version('5.7', '<')
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-reset-root-password
-    - percona-server-tools-reset-root-password-lt-57
+  block:
+    - name: reset root password | < 5.7
+      ansible.builtin.import_tasks: reset-root-password-lt-57.yml
+      when:
+        - _mysql_version.stdout is version('5.7', '<')
+      tags:
+        - percona-server-tools-reset-root-password-lt-57
 
-- name: reset root password >= 5.7
-  ansible.builtin.import_tasks: reset-root-password-ge-57.yml
-  when:
-    - percona_server_tools_reset_root_password.run | default(false)
-    - _mysql_version.stdout is version('5.7', '>=')
-  tags:
-    - configuration
-    - tools
-    - percona-server-tools
-    - percona-server-tools-reset-root-password
-    - percona-server-tools-reset-root-password-ge-57
+    - name: reset root password | >= 5.7
+      ansible.builtin.import_tasks: reset-root-password-ge-57.yml
+      when:
+        - _mysql_version.stdout is version('5.7', '>=')
+      tags:
+        - percona-server-tools-reset-root-password-ge-57
 
 - name: reset ib_logfile
   ansible.builtin.import_tasks: reset-ib-logfile.yml
@@ -45,28 +44,70 @@
     - percona-server-tools-reset-ib-logfile
 
 - name: setup slave replication
-  ansible.builtin.import_tasks: setup-slave-replication.yml
-  when: percona_server_tools_setup_slave_replication.run | default(false)
+  when:
+    - percona_server_tools_setup_slave_replication.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-slave-replication
+  block:
+    - name: setup slave replication | < 8.0
+      ansible.builtin.import_tasks: setup-slave-replication-lt-80.yml
+      when:
+        - _mysql_version.stdout is version('8.0', '<')
+      tags:
+        - percona-server-tools-setup-slave-replication-lt-80
+
+    - name: setup slave replication | >= 8.0
+      ansible.builtin.import_tasks: setup-slave-replication-lt-80.yml
+      when:
+        - _mysql_version.stdout is version('8.0', '>=')
+      tags:
+        - percona-server-tools-setup-slave-replication-ge-80
 
 - name: setup slave replication gtid
-  ansible.builtin.import_tasks: setup-slave-replication-gtid.yml
-  when: percona_server_tools_setup_slave_replication_gtid.run | default(false)
+  when:
+    - percona_server_tools_setup_slave_replication_gtid.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-slave-replication-gtid
+  block:
+    - name: setup slave replication gtid | < 8.0
+      ansible.builtin.import_tasks: setup-slave-replication-gtid-lt-80.yml
+      when:
+        - _mysql_version.stdout is version('8.0', '<')
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-lt-80
+
+    - name: setup slave replication gtid | >= 8.0
+      ansible.builtin.import_tasks: setup-slave-replication-gtid-ge-80.yml
+      when:
+        - _mysql_version.stdout is version('8.0', '>=')
+      tags:
+        - percona-server-tools-setup-slave-replication-gtid-ge-80
 
 - name: setup master replication
-  ansible.builtin.import_tasks: setup-master-replication.yml
-  when: percona_server_tools_setup_master_replication.run | default(false)
+  when:
+    - percona_server_tools_setup_master_replication.run | default(false)
   tags:
     - configuration
     - tools
     - percona-server-tools
     - percona-server-tools-setup-master-replication
+  block:
+    - name: setup master replication | < 8.0
+      ansible.builtin.import_tasks: setup-master-replication-lt-80.yml
+      when:
+        - _mysql_version.stdout is version('8.0', '<')
+      tags:
+        - percona-server-tools-setup-master-replication-lt-80
+
+    - name: setup master replication | >= 8.0
+      ansible.builtin.import_tasks: setup-master-replication-ge-80.yml
+      when:
+        - _mysql_version.stdout is version('8.0', '>=')
+      tags:
+        - percona-server-tools-setup-master-replication-ge-80
