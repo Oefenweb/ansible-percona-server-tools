@@ -48,6 +48,7 @@
           --prepare \
           {% if percona_server_tools_setup_master_replication.xtrabackup.user is defined %}--user={{ percona_server_tools_setup_master_replication.xtrabackup.user }}{% endif %} \
           {% if percona_server_tools_setup_master_replication.xtrabackup.password is defined %}--password='{{ percona_server_tools_setup_master_replication.xtrabackup.password }}'{% endif %} \
+          {% if percona_server_tools_setup_master_replication.xtrabackup.parallel is defined and percona_server_tools_setup_master_replication.xtrabackup.parallel > 1 %}--parallel={{ percona_server_tools_setup_master_replication.xtrabackup.parallel }}{% endif %} \
           {% if percona_server_tools_setup_master_replication.xtrabackup.use_memory is defined %}--use-memory={{ percona_server_tools_setup_master_replication.xtrabackup.use_memory }}{% endif %} \
           --target-dir={{ percona_server_tools_setup_master_replication.xtrabackup.backup_dir }}
       register: _prepare_a_backup
